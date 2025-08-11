@@ -1,3 +1,4 @@
+import ButtonPrimary from "@/components/Button";
 import { Colors } from "@/constants/Colors";
 import { GlobalStyles } from "@/constants/GlobalStyles";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -10,6 +11,11 @@ export default function Index() {
     <View
       style={[GlobalStyles.screenContainer, { paddingBottom: tabBarHeight }]}
     >
+      <ButtonPrimary
+        text="Start Workout"
+        textColor={Colors.dark.bgPrimary}
+        buttonColor={Colors.dark.textPrimary}
+      ></ButtonPrimary>
       <Text style={{ color: Colors.dark.textPrimary }}>Workout.</Text>
     </View>
   );

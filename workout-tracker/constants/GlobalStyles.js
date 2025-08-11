@@ -1,5 +1,5 @@
-import { StyleSheet } from "react-native";
 import { Colors } from "@/constants/Colors";
+import { StyleSheet } from "react-native";
 
 export const GlobalStyles = StyleSheet.create({
   screenContainer: {
@@ -7,6 +7,5 @@ export const GlobalStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: Colors.dark.bgPrimary,
-    paddingBottom
   },
 });

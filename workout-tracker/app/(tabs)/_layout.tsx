@@ -1,8 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
 import { Colors } from "@/constants/Colors";
+import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { View, StyleSheet } from "react-native";
+import { Tabs } from "expo-router";
+import { StyleSheet, View } from "react-native";
 
 export default function TabsLayout() {
   return (
@@ -31,7 +31,6 @@ export default function TabsLayout() {
         },
         headerStyle: {
           backgroundColor: Colors.dark.bgNavbar,
-          position: "absolute",
           elevation: 0,
           shadowColor: "transparent",
           borderBottomWidth: 0.5,
