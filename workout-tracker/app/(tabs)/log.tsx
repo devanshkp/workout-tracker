@@ -1,8 +1,9 @@
+import Calendar from "@/components/Calendar";
 import { getGlobalStyles } from "@/constants/GlobalStyles";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import React from "react";
-import { Text, View } from "react-native";
+import { ScrollView } from "react-native";
 
 export default function Index() {
   const tabBarHeight = useBottomTabBarHeight();
@@ -10,10 +11,14 @@ export default function Index() {
   const GlobalStyles = React.useMemo(() => getGlobalStyles(colors), [colors]);
 
   return (
-    <View
-      style={[GlobalStyles.screenContainer, { paddingBottom: tabBarHeight }]}
+    <ScrollView
+      style={{ backgroundColor: colors.bgPrimary }}
+      contentContainerStyle={[
+        GlobalStyles.screenContainer,
+        { paddingBottom: tabBarHeight },
+      ]}
     >
-      <Text style={{ color: colors.textPrimary }}>Log.</Text>
-    </View>
+      <Calendar style={{ alignSelf: "stretch" }} onDatePress={() => {}} />
+    </ScrollView>
   );
 }

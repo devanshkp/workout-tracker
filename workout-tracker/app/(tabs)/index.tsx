@@ -1,8 +1,10 @@
 import ButtonPrimary from "@/components/Button";
+import { getGlobalStyles } from "@/constants/GlobalStyles";
 import { Typography } from "@/constants/Typography";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import Color from "color";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -40,17 +42,15 @@ const ROUTINES: Routine[] = [
 
 export default function Index() {
   const tabBarHeight = useBottomTabBarHeight();
-  const { colors, accent } = useThemeColors();
-  const styles = React.useMemo(
-    () => createStyles(colors, accent),
-    [colors, accent]
-  );
+  const { colors } = useThemeColors();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  const GlobalStyles = React.useMemo(() => getGlobalStyles(colors), [colors]);
 
   return (
     <ScrollView
       style={{ backgroundColor: colors.bgPrimary }}
       contentContainerStyle={[
-        styles.container,
+        GlobalStyles.screenContainer,
         { paddingBottom: tabBarHeight },
       ]}
       showsVerticalScrollIndicator={false}
@@ -63,11 +63,7 @@ export default function Index() {
             <View
               style={item.isToday ? styles.dateCircleActive : styles.dateCircle}
             >
-              <Text
-                style={item.isToday ? styles.dateTextActive : styles.dateText}
-              >
-                {item.label}
-              </Text>
+              <Text style={styles.dateText}>{item.label}</Text>
             </View>
             {item.hasDot ? (
               <View style={styles.dot} />
@@ -85,8 +81,6 @@ export default function Index() {
           text="Start workout"
           textColor={colors.bgPrimary}
           buttonColor={colors.textPrimary}
-          activeButtonColor={colors.textPrimary}
-          activeTextColor={colors.bgPrimary}
           textStyle={Typography.button}
           style={{ flex: 1 }}
         />
@@ -99,22 +93,55 @@ export default function Index() {
       </View>
 
       {/* Help banner */}
-      <Pressable accessibilityRole="button" style={styles.helpBanner}>
-        <Text style={styles.helpBannerText}>📚 How to log a workout</Text>
-      </Pressable>
+      <ButtonPrimary
+        text="📚 How to log a workout"
+        borderActive={false}
+        buttonColor={colors.accent}
+        style={styles.helpBanner}
+      ></ButtonPrimary>
 
       {/* My Routines */}
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>My Routines</Text>
         <Pressable accessibilityRole="button" style={styles.addRow}>
-          <Ionicons name="add" size={18} color={accent} />
-          <Text style={styles.addText}>Add</Text>
+          {({ pressed }) => (
+            <>
+              <Ionicons
+                name="add"
+                size={18}
+                color={
+                  pressed
+                    ? Color(colors.accent).darken(0.2).toString()
+                    : colors.accent
+                }
+              />
+              <Text
+                style={[
+                  styles.addText,
+                  pressed && {
+                    color: Color(colors.accent).darken(0.2).toString(),
+                  },
+                ]}
+              >
+                Add
+              </Text>
+            </>
+          )}
         </Pressable>
       </View>
 
       <View style={{ height: 20 }} />
       {ROUTINES.map((routine) => (
-        <Pressable key={routine.id} style={styles.routineCard}>
+        <Pressable
+          key={routine.id}
+          style={({ pressed }) => [
+            styles.routineCard,
+            pressed && {
+              backgroundColor: Color(colors.bgSecondary).darken(0.2).toString(),
+              borderColor: Color(colors.bgSecondary).darken(0.2).toString(),
+            },
+          ]}
+        >
           <Text style={styles.routineTitle}>{routine.title}</Text>
           <View style={styles.routineMetaRow}>
             <Text style={styles.routineMetaText}>
@@ -146,7 +173,7 @@ const WEEK_ITEMS = [
   { day: "THU", label: "31", hasDot: false, isToday: true },
 ] as const;
 
-const createStyles = (colors: any, accent: string) =>
+const createStyles = (colors: any) =>
   StyleSheet.create({
     container: {
       backgroundColor: colors.bgPrimary,
@@ -182,7 +209,7 @@ const createStyles = (colors: any, accent: string) =>
       height: 32,
       width: 32,
       borderRadius: 20,
-      backgroundColor: accent,
+      backgroundColor: colors.accent,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -191,17 +218,14 @@ const createStyles = (colors: any, accent: string) =>
       fontWeight: "bold",
       color: colors.textPrimary,
     },
-    dateTextActive: {
-      ...Typography.bodyTertiary,
-      color: colors.bgPrimary,
-    },
+
     dot: {
       marginTop: 1,
       marginBottom: 6,
       height: 6,
       width: 6,
       borderRadius: 3,
-      backgroundColor: accent,
+      backgroundColor: colors.accent,
     },
     sectionHeaderRow: {
       marginTop: 24,
@@ -222,16 +246,8 @@ const createStyles = (colors: any, accent: string) =>
     },
     helpBanner: {
       marginTop: 12,
-      backgroundColor: accent,
-      height: 56,
-      borderRadius: 16,
       alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: 16,
-    },
-    helpBannerText: {
-      ...Typography.button,
-      color: colors.bgPrimary,
     },
     addRow: {
       flexDirection: "row",
@@ -242,13 +258,13 @@ const createStyles = (colors: any, accent: string) =>
     addText: {
       ...Typography.bodySecondary,
       fontWeight: "500",
-      color: accent,
+      color: colors.accent,
     },
     routineCard: {
       backgroundColor: colors.bgSecondary,
       borderRadius: 16,
       padding: 16,
-      borderWidth: 1,
+      borderWidth: 0.5,
       borderColor: colors.border,
       marginBottom: 12,
     },

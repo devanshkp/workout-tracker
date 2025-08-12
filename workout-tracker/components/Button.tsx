@@ -1,5 +1,6 @@
 import { useThemeColors } from "@/hooks/useThemeColors";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import Color from "color";
 import React from "react";
 import {
   Pressable,
@@ -26,6 +27,7 @@ export type ButtonProps = {
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   disabled?: boolean;
+  borderActive?: boolean;
 };
 
 export default function ButtonPrimary({
@@ -40,11 +42,13 @@ export default function ButtonPrimary({
   style,
   textStyle,
   disabled = false,
+  borderActive = true,
 }: ButtonProps) {
   const { colors } = useThemeColors();
   const resolvedButtonColor = buttonColor ?? colors.bgSecondary;
   const resolvedTextColor = textColor ?? colors.textPrimary;
-  const resolvedActiveButtonColor = activeButtonColor ?? resolvedButtonColor;
+  const resolvedActiveButtonColor =
+    activeButtonColor ?? Color(resolvedButtonColor).darken(0.25).toString();
   const resolvedActiveTextColor = activeTextColor ?? resolvedTextColor;
 
   return (
@@ -59,6 +63,11 @@ export default function ButtonPrimary({
             ? resolvedActiveButtonColor
             : resolvedButtonColor,
           opacity: disabled ? 0.6 : 1,
+          borderColor:
+            !borderActive || pressed
+              ? resolvedActiveButtonColor
+              : colors.border,
+          borderWidth: 0.5,
         },
         style,
       ]}

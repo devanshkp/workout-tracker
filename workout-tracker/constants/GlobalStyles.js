@@ -4,9 +4,8 @@ import { StyleSheet } from "react-native";
 export const getGlobalStyles = (colors) =>
   StyleSheet.create({
     screenContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
       backgroundColor: colors.bgPrimary,
+      paddingTop: 16,
+      paddingHorizontal: 12,
     },
   });
