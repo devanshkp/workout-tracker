@@ -1,14 +1,15 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import React from "react";
 import {
   Pressable,
+  StyleProp,
   StyleSheet,
   Text,
   TextStyle,
   View,
   ViewStyle,
 } from "react-native";
-import { Colors } from "../constants/Colors";
 import { Typography } from "../constants/Typography";
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
@@ -22,17 +23,17 @@ export type ButtonProps = {
   activeTextColor?: string;
   iconName?: IoniconName;
   iconSize?: number;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   disabled?: boolean;
 };
 
 export default function ButtonPrimary({
   text,
   onPress,
-  buttonColor = Colors.dark.bgSecondary,
+  buttonColor,
   activeButtonColor,
-  textColor = Colors.dark.textPrimary,
+  textColor,
   activeTextColor,
   iconName,
   iconSize = 18,
@@ -40,8 +41,11 @@ export default function ButtonPrimary({
   textStyle,
   disabled = false,
 }: ButtonProps) {
-  const resolvedActiveButtonColor = activeButtonColor ?? buttonColor;
-  const resolvedActiveTextColor = activeTextColor ?? textColor;
+  const { colors } = useThemeColors();
+  const resolvedButtonColor = buttonColor ?? colors.bgSecondary;
+  const resolvedTextColor = textColor ?? colors.textPrimary;
+  const resolvedActiveButtonColor = activeButtonColor ?? resolvedButtonColor;
+  const resolvedActiveTextColor = activeTextColor ?? resolvedTextColor;
 
   return (
     <Pressable
@@ -51,7 +55,9 @@ export default function ButtonPrimary({
       style={({ pressed }) => [
         styles.button,
         {
-          backgroundColor: pressed ? resolvedActiveButtonColor : buttonColor,
+          backgroundColor: pressed
+            ? resolvedActiveButtonColor
+            : resolvedButtonColor,
           opacity: disabled ? 0.6 : 1,
         },
         style,
@@ -63,14 +69,14 @@ export default function ButtonPrimary({
             <Ionicons
               name={iconName}
               size={iconSize}
-              color={pressed ? resolvedActiveTextColor : textColor}
+              color={pressed ? resolvedActiveTextColor : resolvedTextColor}
               style={styles.icon}
             />
           ) : null}
           <Text
             style={[
               styles.text,
-              { color: pressed ? resolvedActiveTextColor : textColor },
+              { color: pressed ? resolvedActiveTextColor : resolvedTextColor },
               textStyle,
             ]}
             numberOfLines={1}
@@ -90,6 +96,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
+    flex: 1,
   },
   contentRow: {
     flexDirection: "row",

@@ -1,25 +1,32 @@
-import { Colors } from "@/constants/Colors";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 export default function TabsLayout() {
+  const { colors, accent } = useThemeColors();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.accent,
-        tabBarInactiveTintColor: Colors.dark.textSubtle,
+        tabBarActiveTintColor: accent,
+        tabBarInactiveTintColor: colors.textSubtle,
 
         tabBarBackground: () => (
           <View style={{ flex: 1 }}>
             <View
               style={[
                 StyleSheet.absoluteFill,
-                { backgroundColor: Colors.dark.bgNavbar, opacity: 0.85 },
+                { backgroundColor: colors.bgSecondary, opacity: 0.85 },
               ]}
             />
-            <BlurView intensity={100} style={StyleSheet.absoluteFill} />
+            {Platform.OS === "ios" && (
+              <BlurView
+                intensity={100}
+                experimentalBlurMethod="none"
+                style={StyleSheet.absoluteFill}
+              />
+            )}
           </View>
         ),
         tabBarStyle: {
@@ -27,16 +34,17 @@ export default function TabsLayout() {
           elevation: 0,
           shadowColor: "transparent",
           borderTopWidth: 0.5,
-          borderTopColor: Colors.dark.navBarBorder,
+          borderColor: colors.navBarBorder,
+          borderTopColor: colors.navBarBorder,
         },
         headerStyle: {
-          backgroundColor: Colors.dark.bgNavbar,
+          backgroundColor: colors.bgSecondary,
           elevation: 0,
           shadowColor: "transparent",
           borderBottomWidth: 0.5,
-          borderBottomColor: Colors.dark.border,
+          borderBottomColor: colors.border,
         },
-        headerTintColor: Colors.dark.textPrimary,
+        headerTintColor: colors.textPrimary,
         headerTitleStyle: {
           fontWeight: "normal",
         },
