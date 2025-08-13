@@ -15,7 +15,7 @@ export default function Index() {
       style={{ backgroundColor: colors.bgPrimary }}
       contentContainerStyle={[
         GlobalStyles.screenContainer,
-        { paddingBottom: tabBarHeight },
+        { paddingBottom: tabBarHeight, paddingTop: 28 },
       ]}
     >
       <Calendar style={{ alignSelf: "stretch" }} onDatePress={() => {}} />

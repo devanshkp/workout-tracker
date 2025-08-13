@@ -5,7 +5,7 @@ export const getGlobalStyles = (colors) =>
   StyleSheet.create({
     screenContainer: {
       backgroundColor: colors.bgPrimary,
-      paddingTop: 16,
+      paddingTop: 20,
       paddingHorizontal: 12,
     },
   });

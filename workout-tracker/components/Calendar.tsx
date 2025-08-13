@@ -56,14 +56,15 @@ export default function Calendar({
     const base = initialDate ?? today;
     return new Date(base.getFullYear(), base.getMonth(), 1);
   });
-  const [internalSelected, setInternalSelected] = React.useState<
-    Date | undefined
-  >(externallySelected);
+  const [internalSelected, setInternalSelected] = React.useState<Date>(
+    externallySelected || today
+  );
+  const [isSwiping, setIsSwiping] = React.useState(false);
 
   // Keep internalSelected in sync if controlled prop changes
   React.useEffect(() => {
-    if (externallySelected) setInternalSelected(externallySelected);
-  }, [externallySelected]);
+    setInternalSelected(externallySelected || today);
+  }, [externallySelected, today]);
 
   const year = visibleMonth.getFullYear();
   const monthIndex = visibleMonth.getMonth(); // 0-based
@@ -123,12 +124,12 @@ export default function Calendar({
       }
       const dir = delta; // +1 next (slide left), -1 prev (slide right)
       translateX.value = withTiming(
-        -dir * containerWidth,
+        -dir * containerWidth * 0.5,
         { duration: 150 },
         (finished) => {
           if (finished) {
             runOnJS(advanceMonth)(delta);
-            translateX.value = dir * containerWidth;
+            translateX.value = dir * containerWidth * 0.5;
             translateX.value = withTiming(0, { duration: 150 });
           }
         }
@@ -140,8 +141,11 @@ export default function Calendar({
   const pan = React.useMemo(
     () =>
       Gesture.Pan()
+        .onBegin(() => {
+          runOnJS(setIsSwiping)(true);
+        })
         .onUpdate((e) => {
-          translateX.value = e.translationX;
+          translateX.value = e.translationX * 0.75;
         })
         .onEnd((e) => {
           const threshold = Math.max(containerWidth * 0.05);
@@ -174,6 +178,9 @@ export default function Calendar({
           } else {
             translateX.value = withTiming(0, { duration: 150 });
           }
+        })
+        .onFinalize(() => {
+          runOnJS(setIsSwiping)(false);
         }),
     [advanceMonth, containerWidth, translateX]
   );
@@ -195,7 +202,7 @@ export default function Calendar({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Previous month"
-            onPress={() => setVisibleMonth((d) => addMonths(d, -1))}
+            onPress={() => animateToMonth(-1)}
             style={styles.headerButton}
           >
             {({ pressed }) => (
@@ -219,7 +226,7 @@ export default function Calendar({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Next month"
-            onPress={() => setVisibleMonth((d) => addMonths(d, 1))}
+            onPress={() => animateToMonth(+1)}
             style={styles.headerButton}
           >
             {({ pressed }) => (
@@ -254,12 +261,13 @@ export default function Calendar({
                 key={item.key}
                 accessibilityRole="button"
                 onPress={() => handlePressDate(item.date)}
-                style={({ pressed }) => [styles.cell]}
+                disabled={isSwiping}
+                style={styles.cell}
               >
                 {({ pressed }) => (
                   <View style={styles.cellContainer}>
-                    {/* Today's accent highlight only when nothing is selected */}
-                    {isToday && (!internalSelected || isSelected) && (
+                    {/* Today's accent highlight when another date is selected*/}
+                    {isToday && !isSelected && (
                       <View
                         style={[
                           styles.highlightedCell,
@@ -267,21 +275,8 @@ export default function Calendar({
                         ]}
                       />
                     )}
-
-                    {/* Pressed highlight (no selection yet). Avoid overriding today's accent unless something is selected */}
-                    {pressed &&
-                      !isSelected &&
-                      (!isToday || !!internalSelected) && (
-                        <View
-                          style={[
-                            styles.highlightedCell,
-                            { backgroundColor: colors.bgTertiary },
-                          ]}
-                        />
-                      )}
-
                     {/* Selected highlight */}
-                    {isSelected && !isToday && (
+                    {isSelected && (
                       <View
                         style={[
                           styles.highlightedCell,
@@ -293,10 +288,7 @@ export default function Calendar({
                     <Text
                       style={[
                         styles.cellLabel,
-                        isSelected && !isToday && { color: colors.bgPrimary },
-                        isToday &&
-                          internalSelected &&
-                          !isSelected && { color: colors.accent },
+                        isSelected && { color: colors.bgPrimary },
                       ]}
                     >
                       {item.date.getDate()}
@@ -318,10 +310,11 @@ const createStyles = (colors: any) =>
       backgroundColor: colors.bgSecondary,
       borderRadius: 16,
       paddingHorizontal: 8,
-      paddingTop: 10,
+      paddingTop: 16,
       paddingBottom: 12,
       borderWidth: 0.5,
       borderColor: colors.border,
+      overflow: "hidden",
     },
     headerRow: {
       flexDirection: "row",
