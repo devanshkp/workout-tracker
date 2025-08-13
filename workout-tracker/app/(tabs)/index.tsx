@@ -75,7 +75,7 @@ export default function Index() {
       </View>
 
       {/* Quick start */}
-      <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Quick start</Text>
+      <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Quick start</Text>
       <View style={styles.quickRow}>
         <ButtonPrimary
           text="Start workout"
@@ -130,7 +130,7 @@ export default function Index() {
         </Pressable>
       </View>
 
-      <View style={{ height: 20 }} />
+      <View style={{ marginBottom: 20 }} />
       {ROUTINES.map((routine) => (
         <Pressable
           key={routine.id}
@@ -186,8 +186,7 @@ const createStyles = (colors: any) =>
       justifyContent: "space-between",
       paddingVertical: 8,
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      marginBottom: 16,
+      borderBottomColor: colors.bgSecondary,
     },
     weekItem: {
       alignItems: "center",
@@ -228,7 +227,7 @@ const createStyles = (colors: any) =>
       backgroundColor: colors.accent,
     },
     sectionHeaderRow: {
-      marginTop: 24,
+      marginTop: 28,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
@@ -266,7 +265,7 @@ const createStyles = (colors: any) =>
       padding: 16,
       borderWidth: 0.5,
       borderColor: colors.border,
-      marginBottom: 12,
+      marginBottom: 16,
     },
     routineTitle: {
       ...Typography.h2,

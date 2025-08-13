@@ -56,15 +56,15 @@ export default function Calendar({
     const base = initialDate ?? today;
     return new Date(base.getFullYear(), base.getMonth(), 1);
   });
-  const [internalSelected, setInternalSelected] = React.useState<Date>(
-    externallySelected || today
-  );
+  const [internalSelected, setInternalSelected] = React.useState<
+    Date | undefined
+  >(externallySelected);
   const [isSwiping, setIsSwiping] = React.useState(false);
 
   // Keep internalSelected in sync if controlled prop changes
   React.useEffect(() => {
-    setInternalSelected(externallySelected || today);
-  }, [externallySelected, today]);
+    if (externallySelected) setInternalSelected(externallySelected);
+  }, [externallySelected]);
 
   const year = visibleMonth.getFullYear();
   const monthIndex = visibleMonth.getMonth(); // 0-based

@@ -4,7 +4,7 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Text, View } from "react-native";
 
-export default function Index() {
+export default function Profile() {
   const tabBarHeight = useBottomTabBarHeight();
   const { colors } = useThemeColors();
   const GlobalStyles = React.useMemo(() => getGlobalStyles(colors), [colors]);
