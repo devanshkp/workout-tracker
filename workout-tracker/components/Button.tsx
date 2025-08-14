@@ -26,6 +26,7 @@ export type ButtonProps = {
   iconSize?: number;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+
   disabled?: boolean;
   borderActive?: boolean;
 };

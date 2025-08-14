@@ -5,7 +5,7 @@ import { useThemeColors } from "@/hooks/useThemeColors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import Color from "color";
-import { Link } from "expo-router";
+import { Href, Link } from "expo-router";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -78,7 +78,7 @@ export default function HomeScreen() {
       {/* Quick start */}
       <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Quick start</Text>
       <View style={styles.quickRow}>
-        <Link href="/workout-log/active" asChild>
+        <Link href={"/workout-log/active" as Href} asChild>
           <ButtonPrimary
             text="Start workout"
             textColor={colors.bgPrimary}

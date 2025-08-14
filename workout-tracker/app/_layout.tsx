@@ -8,6 +8,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="workout-log/active"
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="workout-log/review"
