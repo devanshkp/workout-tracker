@@ -6,6 +6,13 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="workout-log/active"
+        />
+        <Stack.Screen
+          name="workout-log/review"
+          options={{ headerShown: false }}
+        />
       </Stack>
     </GestureHandlerRootView>
   );

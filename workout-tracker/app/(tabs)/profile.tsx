@@ -4,7 +4,7 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { Text, View } from "react-native";
 
-export default function Profile() {
+export default function ProfileScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const { colors } = useThemeColors();
   const GlobalStyles = React.useMemo(() => getGlobalStyles(colors), [colors]);

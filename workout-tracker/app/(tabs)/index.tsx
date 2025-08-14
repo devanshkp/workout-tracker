@@ -5,6 +5,7 @@ import { useThemeColors } from "@/hooks/useThemeColors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import Color from "color";
+import { Link } from "expo-router";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -40,7 +41,7 @@ const ROUTINES: Routine[] = [
   },
 ];
 
-export default function Index() {
+export default function HomeScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const { colors } = useThemeColors();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
@@ -77,13 +78,15 @@ export default function Index() {
       {/* Quick start */}
       <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Quick start</Text>
       <View style={styles.quickRow}>
-        <ButtonPrimary
-          text="Start workout"
-          textColor={colors.bgPrimary}
-          buttonColor={colors.textPrimary}
-          textStyle={Typography.button}
-          style={{ flex: 1 }}
-        />
+        <Link href="/workout-log/active" asChild>
+          <ButtonPrimary
+            text="Start workout"
+            textColor={colors.bgPrimary}
+            buttonColor={colors.textPrimary}
+            textStyle={Typography.button}
+            style={{ flex: 1 }}
+          />
+        </Link>
         <ButtonPrimary
           text="History"
           buttonColor={colors.bgSecondary}

@@ -34,7 +34,7 @@ const WORKOUTS: Workout[] = [
   },
 ];
 
-export default function Log() {
+export default function LogScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const { colors } = useThemeColors();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
