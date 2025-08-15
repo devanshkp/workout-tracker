@@ -65,6 +65,7 @@ export default function Calendar({
     Date | undefined
   >(externallySelected);
   const [isSwiping, setIsSwiping] = React.useState(false);
+  const [cellWidth, setCellWidth] = React.useState(0);
 
   // Keep internalSelected in sync if controlled prop changes
   React.useEffect(() => {
@@ -104,6 +105,16 @@ export default function Calendar({
     month: "long",
     year: "numeric",
   });
+
+  function chunkIntoWeeks(items: GridItem[]) {
+    const weeks: GridItem[][] = [];
+    for (let i = 0; i < items.length; i += 7) {
+      weeks.push(items.slice(i, i + 7));
+    }
+    return weeks;
+  }
+
+  const weeks = React.useMemo(() => chunkIntoWeeks(grid), [grid]);
 
   function handlePressDate(date: Date) {
     setInternalSelected(date);
@@ -200,7 +211,10 @@ export default function Calendar({
         style={[styles.container, style]}
         accessibilityRole="adjustable"
         accessibilityLabel="Calendar"
-        onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+        onLayout={(e) => {
+          setContainerWidth(e.nativeEvent.layout.width);
+          setCellWidth(containerWidth / 7);
+        }}
       >
         {/* Header */}
         <View style={styles.headerRow}>
@@ -255,57 +269,60 @@ export default function Calendar({
 
         {/* Grid */}
         <Animated.View style={[styles.grid, animatedStyle]}>
-          {grid.map((item) => {
-            if (item.type === "spacer") {
-              return <View key={item.key} style={styles.cellSpacer} />;
-            }
-            const isToday = areSameDay(item.date, today);
-            const isSelected = areSameDay(item.date, internalSelected);
-            const afterToday = isAfterToday(item.date, today);
-            return (
-              <Pressable
-                key={item.key}
-                accessibilityRole="button"
-                onPress={() => handlePressDate(item.date)}
-                disabled={isSwiping}
-                style={styles.cell}
-              >
-                {({ pressed }) => (
-                  <View style={styles.cellContainer}>
-                    {/* Today's accent highlight when another date is selected*/}
-                    {isToday && !isSelected && (
-                      <View
-                        style={[
-                          styles.highlightedCell,
-                          { backgroundColor: colors.accent },
-                        ]}
-                      />
-                    )}
-                    {/* Selected highlight */}
-                    {isSelected && (
-                      <View
-                        style={[
-                          styles.highlightedCell,
-                          { backgroundColor: colors.textPrimary },
-                        ]}
-                      />
-                    )}
+          {weeks.map((week, weekIndex) => (
+            <View key={`week-${weekIndex}`} style={styles.weekRow}>
+              {week.map((item) => {
+                if (item.type === "spacer") {
+                  return <View key={item.key} style={styles.cellSpacer} />;
+                }
 
-                    <Text
-                      style={[
-                        styles.cellLabel,
-                        isSelected && { color: colors.bgPrimary },
-                        afterToday &&
-                          !isSelected && { color: colors.textSubtle },
-                      ]}
-                    >
-                      {item.date.getDate()}
-                    </Text>
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
+                const isToday = areSameDay(item.date, today);
+                const isSelected = areSameDay(item.date, internalSelected);
+                const afterToday = isAfterToday(item.date, today);
+
+                return (
+                  <Pressable
+                    key={item.key}
+                    accessibilityRole="button"
+                    onPress={() => handlePressDate(item.date)}
+                    disabled={isSwiping}
+                    style={styles.cell}
+                  >
+                    {({ pressed }) => (
+                      <View style={styles.cellContainer}>
+                        {isToday && !isSelected && (
+                          <View
+                            style={[
+                              styles.highlightedCell,
+                              { backgroundColor: colors.accent },
+                            ]}
+                          />
+                        )}
+                        {isSelected && (
+                          <View
+                            style={[
+                              styles.highlightedCell,
+                              { backgroundColor: colors.textPrimary },
+                            ]}
+                          />
+                        )}
+                        <Text
+                          style={[
+                            styles.cellLabel,
+                            isSelected && { color: colors.bgPrimary },
+                            afterToday &&
+                              !isSelected && { color: colors.textSubtle },
+                          ]}
+                        >
+                          {item.date.getDate()}
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
         </Animated.View>
       </Animated.View>
     </GestureDetector>
@@ -353,23 +370,31 @@ const createStyles = (colors: any) =>
       textAlign: "center",
     },
     grid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      alignItems: "center",
       paddingTop: 4,
     },
+
+    weekRow: {
+      flexDirection: "row",
+    },
+
     cell: {
-      width: `${100 / 7}%`,
-      borderRadius: 12,
+      width: `${100 / 7}%`, 
       alignItems: "center",
       justifyContent: "center",
       marginVertical: 12,
+      borderRadius: 12,
     },
+
     cellSpacer: {
       width: `${100 / 7}%`,
       marginVertical: 12,
     },
-    cellSelected: {},
+
+    cellContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
     cellLabel: {
       ...Typography.bodyTertiary,
       color: colors.textPrimary,
@@ -387,9 +412,5 @@ const createStyles = (colors: any) =>
       height: 40,
       width: 40,
       borderRadius: 20,
-    },
-    cellContainer: {
-      alignItems: "center",
-      justifyContent: "center",
     },
   });
