@@ -42,6 +42,11 @@ function areSameDay(a: Date | undefined, b: Date | undefined): boolean {
   );
 }
 
+function isAfterToday(a: Date | undefined, b: Date | undefined): boolean {
+  if (!a || !b) return false;
+  return a.getTime() > b.getTime();
+}
+
 export default function Calendar({
   initialDate,
   selectedDate: externallySelected,
@@ -256,6 +261,7 @@ export default function Calendar({
             }
             const isToday = areSameDay(item.date, today);
             const isSelected = areSameDay(item.date, internalSelected);
+            const afterToday = isAfterToday(item.date, today);
             return (
               <Pressable
                 key={item.key}
@@ -289,6 +295,8 @@ export default function Calendar({
                       style={[
                         styles.cellLabel,
                         isSelected && { color: colors.bgPrimary },
+                        afterToday &&
+                          !isSelected && { color: colors.textSubtle },
                       ]}
                     >
                       {item.date.getDate()}
@@ -348,20 +356,18 @@ const createStyles = (colors: any) =>
       flexDirection: "row",
       flexWrap: "wrap",
       alignItems: "center",
-      paddingTop: 12,
+      paddingTop: 4,
     },
     cell: {
       width: `${100 / 7}%`,
-      height: 40,
       borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
-      marginVertical: 4,
+      marginVertical: 12,
     },
     cellSpacer: {
       width: `${100 / 7}%`,
-      height: 40,
-      marginVertical: 4,
+      marginVertical: 12,
     },
     cellSelected: {},
     cellLabel: {

@@ -120,7 +120,7 @@ const createStyles = (colors: any) =>
       color: colors.textPrimary,
     },
     workoutStat: {
-      gap: 4,
+      gap: 6,
       flexDirection: "row",
       alignItems: "center",
     },

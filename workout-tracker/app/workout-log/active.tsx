@@ -10,6 +10,7 @@ import {
   GestureHandlerRootView,
   ScrollView,
 } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -32,8 +33,10 @@ interface Exercise {
 }
 
 export default function ActiveWorkoutScreen() {
+  const { top } = useSafeAreaInsets();
+
   const { colors } = useThemeColors();
-  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  const styles = React.useMemo(() => createStyles(colors, top), [colors, top]);
   const GlobalStyles = React.useMemo(() => getGlobalStyles(colors), [colors]);
   const router = useRouter();
 
@@ -104,7 +107,7 @@ export default function ActiveWorkoutScreen() {
     },
   ]);
 
-  const [restTimer, setRestTimer] = useState(112); // 1:52 in seconds
+  const [restTimer, setRestTimer] = useState(112);
 
   const toggleExercise = (exerciseId: string) => {
     setExercises((prev) =>
@@ -165,13 +168,9 @@ export default function ActiveWorkoutScreen() {
     <GestureHandlerRootView
       style={{ flex: 1, backgroundColor: colors.bgPrimary }}
     >
-      <ScrollView
-        style={{ backgroundColor: colors.bgPrimary }}
-        contentContainerStyle={[GlobalStyles.screenContainer, styles.container]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Navigation Bar */}
-        <View style={styles.navBar}>
+      {/* Navigation Bar */}
+      <View style={styles.navBackgroundContainer}>
+        <View style={styles.navContent}>
           <View style={styles.leftContainer}>
             <Pressable onPress={router.back}>
               {({ pressed }) => (
@@ -200,7 +199,12 @@ export default function ActiveWorkoutScreen() {
             </Pressable>
           </View>
         </View>
-
+      </View>
+      <ScrollView
+        style={{ backgroundColor: colors.bgPrimary }}
+        contentContainerStyle={[GlobalStyles.screenContainer, styles.container]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Workout Summary */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryItem}>
@@ -232,6 +236,7 @@ export default function ActiveWorkoutScreen() {
             onSetToggle={(setId) => toggleSetCompleted(exercise.id, setId)}
             onSwipe={(translationX) => handleSwipe(exercise.id, translationX)}
             colors={colors}
+            top={top}
           />
         ))}
 
@@ -268,6 +273,7 @@ interface ExerciseCardProps {
   onSetToggle: (setId: string) => void;
   onSwipe: (translationX: number) => void;
   colors: any;
+  top: number;
 }
 
 function ExerciseCard({
@@ -276,8 +282,9 @@ function ExerciseCard({
   onSetToggle,
   onSwipe,
   colors,
+  top,
 }: ExerciseCardProps) {
-  const styles = createStyles(colors);
+  const styles = createStyles(colors, top);
 
   return (
     <View style={[styles.exerciseCard]}>
@@ -377,18 +384,25 @@ function ExerciseCard({
   );
 }
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: any, top: number) =>
   StyleSheet.create({
     container: {
       paddingBottom: 100, // Space for timer controls
     },
-    navBar: {
+    navBackgroundContainer: {
+      backgroundColor: colors.bgSecondary,
+      justifyContent: "flex-end",
+      paddingTop: top,
+      borderBottomWidth: 0.5,
+      borderColor: colors.border,
+    },
+    navContent: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      paddingHorizontal: 8,
-      marginBottom: 16,
-      marginTop: 40,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
     },
     leftContainer: {
       flex: 1,
@@ -416,24 +430,27 @@ const createStyles = (colors: any) =>
     },
     summaryCard: {
       backgroundColor: colors.bgSecondary,
-      borderRadius: 12,
+      borderRadius: 4,
       padding: 16,
       marginBottom: 20,
       flexDirection: "row",
       justifyContent: "space-between",
     },
     summaryItem: {
-      alignItems: "center",
+      alignItems: "flex-start",
+      flex: 1,
     },
     summaryLabel: {
       color: colors.textSubtle,
       fontSize: 12,
       marginBottom: 4,
+      textAlign: "left",
     },
     summaryValue: {
-      color: colors.accent,
-      fontSize: 18,
-      fontWeight: "600",
+      color: colors.textPrimary,
+      fontSize: 20,
+      fontWeight: "700",
+      textAlign: "left",
     },
     exerciseCard: {
       backgroundColor: colors.bgSecondary,

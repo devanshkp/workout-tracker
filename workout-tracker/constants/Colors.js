@@ -18,7 +18,6 @@ export const Colors = {
     bgPrimary: "hsl(0, 0%, 0%)",
     bgSecondary: "hsl(0, 0%, 12.16%)",
     bgTertiary: "hsl(0, 0%, 21.18%)",
-    bgNavbar: "hsla(0, 0%, 12.16%, 0.85)",
     bgTextField: "hsl(0, 0%, 7.06%)",
     textPrimary: "hsl(0, 0%, 94.51%)",
     textSubtle: "hsl(0, 0%, 60%)",
