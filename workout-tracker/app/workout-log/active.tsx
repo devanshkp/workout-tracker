@@ -29,7 +29,7 @@ interface Exercise {
     previous?: string;
   }>;
   notes: string;
-  restTime: number; // in seconds
+  restTime: number; // seconds
 }
 
 export default function ActiveWorkoutScreen() {
@@ -324,42 +324,79 @@ function ExerciseCard({
           {!exercise.isNotesView && (
             <View style={styles.setsContainer}>
               <View style={styles.setHeader}>
-                <Text style={styles.setHeaderText}>SET</Text>
-                <Text style={styles.setHeaderText}>PREVIOUS</Text>
-                <Text style={styles.setHeaderText}>KG</Text>
-                <Text style={styles.setHeaderText}>REPS</Text>
-                <View style={styles.checkboxHeader} />
+                <Text style={[styles.setHeaderText, styles.columnSet]}>
+                  SET
+                </Text>
+                <Text style={[styles.setHeaderText, styles.columnPrevious]}>
+                  PREVIOUS
+                </Text>
+                <Text style={[styles.setHeaderText, styles.columnWeight]}>
+                  KG
+                </Text>
+                <Text style={[styles.setHeaderText, styles.columnReps]}>
+                  REPS
+                </Text>
+                <View style={styles.columnCheckbox} />
               </View>
               <View style={styles.setDivider} />
-              {exercise.sets.map((set) => (
-                <View key={set.id} style={styles.setRow}>
-                  <Text
+              {exercise.sets.map((set, index) => (
+                <React.Fragment key={set.id}>
+                  <View
                     style={[
-                      styles.setNumber,
-                      set.type === "warmup" && styles.warmupSet,
+                      styles.setRow,
+                      set.completed && styles.setRowCompleted,
                     ]}
                   >
-                    {set.type === "warmup" ? "W" : set.setNumber}
-                  </Text>
-                  <Text style={styles.setPrevious}>{set.previous || "-"}</Text>
-                  <Text style={styles.setWeight}>{set.weight}</Text>
-                  <Text style={styles.setReps}>{set.reps}</Text>
-                  <Pressable
-                    style={[
-                      styles.checkbox,
-                      set.completed && styles.checkboxCompleted,
-                    ]}
-                    onPress={() => onSetToggle(set.id)}
-                  >
-                    {set.completed && (
-                      <Ionicons
-                        name="checkmark"
-                        size={12}
-                        color={colors.textPrimary}
-                      />
-                    )}
-                  </Pressable>
-                </View>
+                    <Text
+                      style={[
+                        styles.setText,
+                        styles.columnSet,
+                        set.type === "warmup" && { color: colors.warmup },
+                      ]}
+                    >
+                      {set.type === "warmup" ? "W" : set.setNumber}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.setText,
+                        styles.setTextPrevious,
+                        styles.columnPrevious,
+                      ]}
+                    >
+                      {set.previous || "-"}
+                    </Text>
+
+                    <Text style={[styles.setText, styles.columnWeight]}>
+                      {set.weight}
+                    </Text>
+
+                    <Text style={[styles.setText, styles.columnReps]}>
+                      {set.reps}
+                    </Text>
+
+                    <View style={styles.columnCheckbox}>
+                      <Pressable
+                        style={[
+                          styles.checkbox,
+                          set.completed && styles.checkboxCompleted,
+                        ]}
+                        onPress={() => onSetToggle(set.id)}
+                      >
+                        {set.completed && (
+                          <Ionicons
+                            name="checkmark"
+                            size={20}
+                            color={colors.bgPrimary}
+                          />
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+                  {index < exercise.sets.length - 1 && (
+                    <View style={styles.rowDivider} />
+                  )}
+                </React.Fragment>
               ))}
             </View>
           )}
@@ -373,10 +410,12 @@ function ExerciseCard({
 
           {/* Add Set Button */}
           {!exercise.isNotesView && (
-            <Pressable style={styles.addSetButton}>
-              <Ionicons name="add" size={16} color={colors.textPrimary} />
-              <Text style={styles.addSetText}>Add Set</Text>
-            </Pressable>
+            <ButtonPrimary
+              text="Add Set"
+              iconName="add"
+              buttonColor={colors.bgTertiary}
+              style={{ margin: 12, marginTop: 0 }}
+            />
           )}
         </>
       )}
@@ -480,25 +519,29 @@ const createStyles = (colors: any, top: number) =>
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: 16,
-      paddingBottom: 12,
+      paddingBottom: 24,
     },
     restTimerText: {
+      ...Typography.body,
       color: colors.accent,
-      fontSize: 14,
       marginLeft: 6,
     },
+    columnSet: { width: "10%", textAlign: "center" },
+    columnPrevious: { width: "40%", textAlign: "center" },
+    columnWeight: { width: "15%", textAlign: "center" },
+    columnReps: { width: "25%", textAlign: "center" },
+    columnCheckbox: { width: "8%", textAlign: "center" },
     setsContainer: {
-      paddingHorizontal: 16,
       paddingBottom: 16,
     },
     setHeader: {
       flexDirection: "row",
       marginBottom: 8,
+      paddingHorizontal: 12,
     },
     setHeaderText: {
+      ...Typography.bodyTertiary,
       color: colors.textSubtle,
-      fontSize: 12,
-      flex: 1,
     },
     checkboxHeader: {
       width: 20,
@@ -506,12 +549,28 @@ const createStyles = (colors: any, top: number) =>
     setDivider: {
       height: 1,
       backgroundColor: colors.border,
-      marginBottom: 12,
+    },
+    rowDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+    },
+    setText: {
+      ...Typography.bodySecondary,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    setTextPrevious: {
+      color: colors.textSubtle,
+      fontWeight: "400",
     },
     setRow: {
       flexDirection: "row",
       alignItems: "center",
-      marginBottom: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+    },
+    setRowCompleted: {
+      backgroundColor: colors.bgTertiary,
     },
     setNumber: {
       color: colors.textPrimary,
@@ -537,13 +596,14 @@ const createStyles = (colors: any, top: number) =>
       flex: 1,
     },
     checkbox: {
-      width: 20,
-      height: 20,
+      width: 24,
+      height: 24,
       borderWidth: 1,
       borderColor: colors.textSubtle,
       borderRadius: 4,
       alignItems: "center",
       justifyContent: "center",
+      alignSelf: "flex-end",
     },
     checkboxCompleted: {
       backgroundColor: colors.textSubtle,
@@ -560,6 +620,7 @@ const createStyles = (colors: any, top: number) =>
     addSetButton: {
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "center",
       backgroundColor: colors.bgTertiary,
       padding: 12,
       marginHorizontal: 16,
