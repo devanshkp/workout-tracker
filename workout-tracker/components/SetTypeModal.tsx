@@ -43,7 +43,7 @@ export default function SetTypeModal({
       <View
         style={[styles.modalContent, { backgroundColor: colors.bgSecondary }]}
       >
-        <View style={styles.modalNav}>
+        <View style={styles.nav}>
           <Pressable onPress={onClose}>
             <Ionicons
               name="close-outline"
@@ -51,7 +51,7 @@ export default function SetTypeModal({
               color={colors.textSubtle}
             />
           </Pressable>
-          <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+          <Text style={[styles.header, { color: colors.textPrimary }]}>
             Change Set Type
           </Text>
           <Ionicons
@@ -61,15 +61,15 @@ export default function SetTypeModal({
           />
         </View>
 
-        <View style={styles.modalOptions}>
+        <View style={styles.optionsContainer}>
           {(["warmup", "normal", "failure", "dropset"] as SetType[]).map(
             (type) => (
               <Pressable
                 key={type}
                 style={[
-                  styles.modalOption,
+                  styles.option,
                   selectedSet.type === type && [
-                    styles.modalOptionSelected,
+                    styles.optionSelected,
                     {
                       backgroundColor: colors.bgTertiary,
                       borderColor: colors.accent,
@@ -80,10 +80,10 @@ export default function SetTypeModal({
               >
                 <Text
                   style={[
-                    styles.modalOptionText,
+                    styles.optionText,
                     { color: colors.textPrimary },
                     selectedSet.type === type && [
-                      styles.modalOptionTextSelected,
+                      styles.optionTextSelected,
                       { color: colors.accent },
                     ],
                   ]}
@@ -104,14 +104,14 @@ export default function SetTypeModal({
           )}
         </View>
 
-        <View style={styles.modalButtons}>
+        <View style={styles.buttons}>
           <ButtonPrimary
             text="Remove Set"
             borderActive={false}
             buttonColor={colors.bgTertiary}
             textColor={colors.warning}
             onPress={onRemoveSet}
-            style={{ height: 44 }}
+            style={{ height: 44, width: "100%" }}
           />
         </View>
       </View>
@@ -134,25 +134,26 @@ const styles = StyleSheet.create({
   modalContent: {
     borderRadius: 12,
     padding: 20,
-    width: "80%",
+    width: "85%",
     alignItems: "center",
   },
-  modalNav: {
+  nav: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
-    marginBottom: 20,
+    marginBottom: 32,
   },
-  modalTitle: {
-    ...Typography.bodySecondary,
+  header: {
+    ...Typography.body,
+    fontWeight: "500",
     textAlign: "center",
   },
-  modalOptions: {
+  optionsContainer: {
     width: "100%",
     marginBottom: 20,
   },
-  modalOption: {
+  option: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -161,17 +162,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
   },
-  modalOptionSelected: {
+  optionSelected: {
     borderColor: "transparent",
     borderWidth: 1,
   },
-  modalOptionText: {
-    ...Typography.bodySecondary,
+  optionText: {
+    ...Typography.body,
   },
-  modalOptionTextSelected: {
-    fontWeight: "600",
+  optionTextSelected: {
+    fontWeight: "500",
   },
-  modalButtons: {
+  buttons: {
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-around",

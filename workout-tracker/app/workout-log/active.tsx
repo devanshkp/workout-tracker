@@ -9,6 +9,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ButtonPrimary from "../../components/Button";
 import ExerciseCard from "../../components/ExerciseCard";
+import GeneralTimer from "../../components/GeneralTimer";
 import SetTypeModal from "../../components/SetTypeModal";
 import { getGlobalStyles } from "../../constants/GlobalStyles";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -165,6 +166,7 @@ export default function ActiveWorkoutScreen() {
     type: SetType;
   } | null>(null);
   const [showSetTypeModal, setShowSetTypeModal] = useState(false);
+  const [showTimerModal, setShowTimerModal] = useState(false);
 
   // Function to update set type and recalculate numbering
   const updateSetType = (
@@ -199,6 +201,19 @@ export default function ActiveWorkoutScreen() {
             completed: false,
           };
           const updatedSets = [...ex.sets, newSet];
+          return { ...ex, sets: calculateSetNumbers(updatedSets) };
+        }
+        return ex;
+      })
+    );
+  };
+
+  // Function to remove a set
+  const removeSet = (exerciseId: string, setId: string) => {
+    setExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.id === exerciseId) {
+          const updatedSets = ex.sets.filter((set) => set.id !== setId);
           return { ...ex, sets: calculateSetNumbers(updatedSets) };
         }
         return ex;
@@ -274,7 +289,7 @@ export default function ActiveWorkoutScreen() {
             </Pressable>
           </View>
           <View style={styles.centerContainer}>
-            <Pressable>
+            <Pressable onPress={() => setShowTimerModal(true)}>
               {({ pressed }) => (
                 <Ionicons
                   name="time-outline"
@@ -361,9 +376,38 @@ export default function ActiveWorkoutScreen() {
           setSelectedSet(null);
         }}
         onSetTypeChange={updateSetType}
-        onRemoveSet={() => {}}
+        onRemoveSet={() => {
+          if (selectedSet) {
+            removeSet(selectedSet.exerciseId, selectedSet.setId);
+            setShowSetTypeModal(false);
+            setSelectedSet(null);
+          }
+        }}
         colors={colors}
       />
+
+      {/* Timer Modal */}
+      {showTimerModal && (
+        <GeneralTimer
+          onClose={() => setShowTimerModal(false)}
+          onSettings={() => {
+            // Handle timer settings
+            console.log("Timer settings pressed");
+          }}
+          onStart={(duration) => {
+            console.log(`Timer started with duration: ${duration} seconds`);
+            setShowTimerModal(false);
+            // You can add logic here to start the actual timer
+          }}
+          initialDuration={180} // 3 minutes default
+          presets={[
+            { id: "1", duration: 90, label: "1:30" },
+            { id: "2", duration: 180, label: "3:00" },
+            { id: "3", duration: 300, label: "5:00" },
+            { id: "4", duration: 600, label: "10:00" },
+          ]}
+        />
+      )}
 
       {/* Bottom Timer Controls */}
       {/* <View style={styles.timerContainer}>

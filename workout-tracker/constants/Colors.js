@@ -11,7 +11,7 @@ export const Colors = {
     bgTextField: "hsl(0, 0%, 7.06%)",
     textPrimary: "hsl(0, 0%, 94.51%)",
     textSubtle: "hsl(0, 0%, 60%)",
-    border: "hsla(0, 0%, 100%, 0.05)",
+    border: "hsla(0, 0%, 100%, 0.03)",
     navBarBorder: "hsla(0, 0%, 100%, 0.15)",
   },
 

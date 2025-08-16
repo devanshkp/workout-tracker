@@ -1,7 +1,14 @@
 import { Typography } from "@/constants/Typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import {
+  Animated,
+  Easing,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import ButtonPrimary from "./Button";
 
 type SetType = "warmup" | "normal" | "failure" | "dropset";
@@ -51,6 +58,71 @@ export default function ExerciseCard({
 }: ExerciseCardProps) {
   const styles = createStyles(colors, top);
 
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(exercise.isOpen ? 1 : 0)).current;
+  const slideAnim = useRef(
+    new Animated.Value(exercise.isOpen ? 0 : -20)
+  ).current;
+  const iconRotateAnim = useRef(
+    new Animated.Value(exercise.isOpen ? 1 : 0)
+  ).current;
+
+  useEffect(() => {
+    const duration = 250;
+    const easing = Easing.bezier(0.4, 0.0, 0.2, 1);
+
+    if (exercise.isOpen) {
+      // Opening animation
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: duration,
+          easing,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: duration,
+          easing,
+          useNativeDriver: true,
+        }),
+        Animated.timing(iconRotateAnim, {
+          toValue: 1,
+          duration: duration,
+          easing,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Closing animation
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: duration,
+          easing,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: -20,
+          duration: duration,
+          easing,
+          useNativeDriver: true,
+        }),
+        Animated.timing(iconRotateAnim, {
+          toValue: 0,
+          duration: duration,
+          easing,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [exercise.isOpen]);
+
+  const iconRotation = iconRotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "180deg"],
+  });
+
   return (
     <View style={[styles.exerciseCard]}>
       {/* Header */}
@@ -65,15 +137,18 @@ export default function ExerciseCard({
         >
           {exercise.name}
         </Text>
-        <Ionicons
-          name={exercise.isOpen ? "ellipsis-vertical" : "chevron-down"}
-          size={20}
-          color={colors.textPrimary}
-        />
+        <Animated.View style={{ transform: [{ rotate: iconRotation }] }}>
+          <Ionicons name="chevron-down" size={20} color={colors.textPrimary} />
+        </Animated.View>
       </Pressable>
 
       {exercise.isOpen && (
-        <>
+        <Animated.View
+          style={{
+            opacity: fadeAnim,
+            transform: [{ translateX: slideAnim }],
+          }}
+        >
           {/* Rest Timer */}
           {!exercise.isNotesView && (
             <View style={styles.restTimer}>
@@ -89,18 +164,18 @@ export default function ExerciseCard({
           {!exercise.isNotesView && (
             <View style={styles.setsContainer}>
               <View style={styles.setHeader}>
-                <View style={styles.columnSet}>
-                  <Text style={styles.setHeaderText}>SET</Text>
-                </View>
-                <View style={styles.columnPrevious}>
-                  <Text style={styles.setHeaderText}>PREVIOUS</Text>
-                </View>
-                <View style={styles.columnWeight}>
-                  <Text style={styles.setHeaderText}>KG</Text>
-                </View>
-                <View style={styles.columnReps}>
-                  <Text style={styles.setHeaderText}>REPS</Text>
-                </View>
+                <Text style={[styles.setHeaderText, styles.columnSet]}>
+                  SET
+                </Text>
+                <Text style={[styles.setHeaderText, styles.columnPrevious]}>
+                  PREVIOUS
+                </Text>
+                <Text style={[styles.setHeaderText, styles.columnWeight]}>
+                  KG
+                </Text>
+                <Text style={[styles.setHeaderText, styles.columnReps]}>
+                  REPS
+                </Text>
                 <View style={styles.columnCheckbox} />
               </View>
               <View style={styles.setDivider} />
@@ -194,7 +269,7 @@ export default function ExerciseCard({
               borderActive={false}
             />
           )}
-        </>
+        </Animated.View>
       )}
     </View>
   );
@@ -213,9 +288,10 @@ const createStyles = (colors: any, top: number) =>
       justifyContent: "space-between",
       alignItems: "center",
       padding: 16,
+      paddingVertical: 20,
     },
     exerciseTitle: {
-      ...Typography.body,
+      ...Typography.h2,
       flex: 1,
     },
     exerciseTitleOpen: {
@@ -237,38 +313,18 @@ const createStyles = (colors: any, top: number) =>
       color: colors.accent,
       marginLeft: 6,
     },
-    columnSet: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    columnPrevious: {
-      flex: 2,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    columnWeight: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    columnReps: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    columnCheckbox: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-    },
+    columnSet: { width: "10%", textAlign: "center" },
+    columnPrevious: { width: "40%", textAlign: "center" },
+    columnWeight: { width: "15%", textAlign: "center" },
+    columnReps: { width: "25%", textAlign: "center" },
+    columnCheckbox: { width: "9%", textAlign: "center" },
     setsContainer: {
       paddingBottom: 16,
     },
     setHeader: {
       flexDirection: "row",
-      marginBottom: 8,
-      paddingHorizontal: 12,
+      marginBottom: 12,
+      paddingHorizontal: 16,
       width: "100%",
     },
     setHeaderText: {
@@ -302,7 +358,7 @@ const createStyles = (colors: any, top: number) =>
     setRow: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 12,
+      paddingHorizontal: 16,
       paddingVertical: 12,
       width: "100%",
     },
