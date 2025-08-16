@@ -5,6 +5,7 @@ export type ThemeColors = typeof Colors.dark & {
   accent: string;
   warmup: string;
   warning: string;
+  dropset: string;
 };
 
 export function useThemeColors(): {
@@ -20,6 +21,7 @@ export function useThemeColors(): {
       accent: Colors.accent,
       warmup: Colors.warmup,
       warning: Colors.warning,
+      dropset: Colors.dropset,
     },
     scheme,
   };

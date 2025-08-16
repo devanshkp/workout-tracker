@@ -5,32 +5,47 @@ import { useThemeColors } from "@/hooks/useThemeColors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   GestureHandlerRootView,
   ScrollView,
 } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width: screenWidth } = Dimensions.get("window");
+type SetType = "warmup" | "normal" | "failure" | "dropset";
+
+interface Set {
+  id: string;
+  type: SetType;
+  setNumber: number; // 0 for non-numbered sets, sequential for numbered sets
+  weight: number;
+  reps: number;
+  completed: boolean;
+  previous?: string;
+}
 
 interface Exercise {
   id: string;
   name: string;
   isOpen: boolean;
   isNotesView: boolean;
-  sets: Array<{
-    id: string;
-    type: "warmup" | "working";
-    setNumber: number;
-    weight: number;
-    reps: number;
-    completed: boolean;
-    previous?: string;
-  }>;
+  sets: Set[];
   notes: string;
   restTime: number; // seconds
 }
+
+// Function to calculate set numbers based on the rules
+const calculateSetNumbers = (sets: Set[]): Set[] => {
+  let normalSetCounter = 0;
+  return sets.map((set) => {
+    if (set.type === "warmup" || set.type === "dropset") {
+      return { ...set, setNumber: 0 }; // 0 indicates no numbering
+    } else {
+      normalSetCounter++;
+      return { ...set, setNumber: normalSetCounter };
+    }
+  });
+};
 
 export default function ActiveWorkoutScreen() {
   const { top } = useSafeAreaInsets();
@@ -46,7 +61,7 @@ export default function ActiveWorkoutScreen() {
       name: "Incline Bench Press (Dumbbell)",
       isOpen: true,
       isNotesView: false,
-      sets: [
+      sets: calculateSetNumbers([
         {
           id: "1",
           type: "warmup",
@@ -58,14 +73,50 @@ export default function ActiveWorkoutScreen() {
         },
         {
           id: "2",
-          type: "working",
+          type: "normal",
           setNumber: 1,
           weight: 25,
           reps: 8,
           completed: false,
           previous: "25kg x 2",
         },
-      ],
+        {
+          id: "3",
+          type: "failure",
+          setNumber: 2,
+          weight: 30,
+          reps: 6,
+          completed: false,
+          previous: "30kg x 6",
+        },
+        {
+          id: "4",
+          type: "normal",
+          setNumber: 3,
+          weight: 25,
+          reps: 8,
+          completed: false,
+          previous: "25kg x 8",
+        },
+        {
+          id: "5",
+          type: "dropset",
+          setNumber: 0,
+          weight: 20,
+          reps: 12,
+          completed: false,
+          previous: "20kg x 12",
+        },
+        {
+          id: "6",
+          type: "normal",
+          setNumber: 4,
+          weight: 25,
+          reps: 8,
+          completed: false,
+          previous: "25kg x 8",
+        },
+      ]),
       notes: "",
       restTime: 180, // 3 minutes
     },
@@ -74,16 +125,16 @@ export default function ActiveWorkoutScreen() {
       name: "Squats",
       isOpen: false,
       isNotesView: false,
-      sets: [
+      sets: calculateSetNumbers([
         {
           id: "1",
-          type: "working",
+          type: "normal",
           setNumber: 1,
           weight: 80,
           reps: 10,
           completed: false,
         },
-      ],
+      ]),
       notes: "",
       restTime: 120,
     },
@@ -92,22 +143,67 @@ export default function ActiveWorkoutScreen() {
       name: "Deadlifts",
       isOpen: false,
       isNotesView: false,
-      sets: [
+      sets: calculateSetNumbers([
         {
           id: "1",
-          type: "working",
+          type: "normal",
           setNumber: 1,
           weight: 100,
           reps: 8,
           completed: false,
         },
-      ],
+      ]),
       notes: "",
       restTime: 180,
     },
   ]);
 
-  const [restTimer, setRestTimer] = useState(112);
+  const [selectedSet, setSelectedSet] = useState<{
+    exerciseId: string;
+    setId: string;
+    type: SetType;
+  } | null>(null);
+  const [showSetTypeModal, setShowSetTypeModal] = useState(false);
+
+  // Function to update set type and recalculate numbering
+  const updateSetType = (
+    exerciseId: string,
+    setId: string,
+    newType: SetType
+  ) => {
+    setExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.id === exerciseId) {
+          const updatedSets = ex.sets.map((set) =>
+            set.id === setId ? { ...set, type: newType } : set
+          );
+          return { ...ex, sets: calculateSetNumbers(updatedSets) };
+        }
+        return ex;
+      })
+    );
+  };
+
+  // Function to add a new set (defaults to normal type)
+  const addSet = (exerciseId: string) => {
+    setExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.id === exerciseId) {
+          const newSet: Set = {
+            id: Date.now().toString(), // Simple ID generation
+            type: "normal",
+            setNumber: 0, // Will be calculated
+            weight: 0,
+            reps: 0,
+            completed: false,
+          };
+          const updatedSets = [...ex.sets, newSet];
+          return { ...ex, sets: calculateSetNumbers(updatedSets) };
+        }
+        return ex;
+      })
+    );
+  };
 
   const toggleExercise = (exerciseId: string) => {
     setExercises((prev) =>
@@ -142,12 +238,6 @@ export default function ActiveWorkoutScreen() {
         )
       );
     }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const calculateWorkoutStats = () => {
@@ -235,6 +325,18 @@ export default function ActiveWorkoutScreen() {
             onToggle={() => toggleExercise(exercise.id)}
             onSetToggle={(setId) => toggleSetCompleted(exercise.id, setId)}
             onSwipe={(translationX) => handleSwipe(exercise.id, translationX)}
+            onSetTypeChange={(setId, newType) =>
+              updateSetType(exercise.id, setId, newType)
+            }
+            onAddSet={() => addSet(exercise.id)}
+            onSetPress={(setId, type) => {
+              setSelectedSet({
+                exerciseId: exercise.id,
+                setId,
+                type,
+              });
+              setShowSetTypeModal(true);
+            }}
             colors={colors}
             top={top}
           />
@@ -247,6 +349,73 @@ export default function ActiveWorkoutScreen() {
           buttonColor={colors.accent}
         />
       </ScrollView>
+
+      {/* Set Type Selection Modal */}
+      {showSetTypeModal && selectedSet && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Change Set Type</Text>
+
+            <View style={styles.modalOptions}>
+              {(["warmup", "normal", "failure", "dropset"] as SetType[]).map(
+                (type) => (
+                  <Pressable
+                    key={type}
+                    style={[
+                      styles.modalOption,
+                      selectedSet.type === type && styles.modalOptionSelected,
+                    ]}
+                    onPress={() => {
+                      updateSetType(
+                        selectedSet.exerciseId,
+                        selectedSet.setId,
+                        type
+                      );
+                      setShowSetTypeModal(false);
+                      setSelectedSet(null);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        selectedSet.type === type &&
+                          styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {type === "warmup"
+                        ? "Warmup (W)"
+                        : type === "normal"
+                        ? "Normal (1,2,3...)"
+                        : type === "failure"
+                        ? "Failure (F)"
+                        : "Drop Set (D)"}
+                    </Text>
+                    {selectedSet.type === type && (
+                      <Ionicons
+                        name="checkmark"
+                        size={20}
+                        color={colors.accent}
+                      />
+                    )}
+                  </Pressable>
+                )
+              )}
+            </View>
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={styles.modalButton}
+                onPress={() => {
+                  setShowSetTypeModal(false);
+                  setSelectedSet(null);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Bottom Timer Controls */}
       {/* <View style={styles.timerContainer}>
@@ -272,6 +441,9 @@ interface ExerciseCardProps {
   onToggle: () => void;
   onSetToggle: (setId: string) => void;
   onSwipe: (translationX: number) => void;
+  onSetTypeChange: (setId: string, newType: SetType) => void;
+  onAddSet: () => void;
+  onSetPress: (setId: string, type: SetType) => void;
   colors: any;
   top: number;
 }
@@ -281,6 +453,9 @@ function ExerciseCard({
   onToggle,
   onSetToggle,
   onSwipe,
+  onSetTypeChange,
+  onAddSet,
+  onSetPress,
   colors,
   top,
 }: ExerciseCardProps) {
@@ -324,18 +499,18 @@ function ExerciseCard({
           {!exercise.isNotesView && (
             <View style={styles.setsContainer}>
               <View style={styles.setHeader}>
-                <Text style={[styles.setHeaderText, styles.columnSet]}>
-                  SET
-                </Text>
-                <Text style={[styles.setHeaderText, styles.columnPrevious]}>
-                  PREVIOUS
-                </Text>
-                <Text style={[styles.setHeaderText, styles.columnWeight]}>
-                  KG
-                </Text>
-                <Text style={[styles.setHeaderText, styles.columnReps]}>
-                  REPS
-                </Text>
+                <View style={styles.columnSet}>
+                  <Text style={styles.setHeaderText}>SET</Text>
+                </View>
+                <View style={styles.columnPrevious}>
+                  <Text style={styles.setHeaderText}>PREVIOUS</Text>
+                </View>
+                <View style={styles.columnWeight}>
+                  <Text style={styles.setHeaderText}>KG</Text>
+                </View>
+                <View style={styles.columnReps}>
+                  <Text style={styles.setHeaderText}>REPS</Text>
+                </View>
                 <View style={styles.columnCheckbox} />
               </View>
               <View style={styles.setDivider} />
@@ -347,33 +522,40 @@ function ExerciseCard({
                       set.completed && styles.setRowCompleted,
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.setText,
-                        styles.columnSet,
-                        set.type === "warmup" && { color: colors.warmup },
-                      ]}
-                    >
-                      {set.type === "warmup" ? "W" : set.setNumber}
-                    </Text>
+                    <View style={styles.columnSet}>
+                      <Pressable onPress={() => onSetPress(set.id, set.type)}>
+                        <Text
+                          style={[
+                            styles.setText,
+                            set.type === "warmup" && { color: colors.warmup },
+                            set.type === "failure" && { color: colors.warning },
+                            set.type === "dropset" && { color: colors.dropset },
+                          ]}
+                        >
+                          {set.type === "warmup"
+                            ? "W"
+                            : set.type === "failure"
+                            ? "F"
+                            : set.type === "dropset"
+                            ? "D"
+                            : set.setNumber}
+                        </Text>
+                      </Pressable>
+                    </View>
 
-                    <Text
-                      style={[
-                        styles.setText,
-                        styles.setTextPrevious,
-                        styles.columnPrevious,
-                      ]}
-                    >
-                      {set.previous || "-"}
-                    </Text>
+                    <View style={styles.columnPrevious}>
+                      <Text style={[styles.setText, styles.setTextPrevious]}>
+                        {set.previous || "-"}
+                      </Text>
+                    </View>
 
-                    <Text style={[styles.setText, styles.columnWeight]}>
-                      {set.weight}
-                    </Text>
+                    <View style={styles.columnWeight}>
+                      <Text style={styles.setText}>{set.weight}</Text>
+                    </View>
 
-                    <Text style={[styles.setText, styles.columnReps]}>
-                      {set.reps}
-                    </Text>
+                    <View style={styles.columnReps}>
+                      <Text style={styles.setText}>{set.reps}</Text>
+                    </View>
 
                     <View style={styles.columnCheckbox}>
                       <Pressable
@@ -415,6 +597,7 @@ function ExerciseCard({
               iconName="add"
               buttonColor={colors.bgTertiary}
               style={{ margin: 12, marginTop: 0 }}
+              onPress={onAddSet}
             />
           )}
         </>
@@ -526,11 +709,41 @@ const createStyles = (colors: any, top: number) =>
       color: colors.accent,
       marginLeft: 6,
     },
-    columnSet: { width: "10%", textAlign: "center" },
-    columnPrevious: { width: "40%", textAlign: "center" },
-    columnWeight: { width: "15%", textAlign: "center" },
-    columnReps: { width: "25%", textAlign: "center" },
-    columnCheckbox: { width: "8%", textAlign: "center" },
+    columnSet: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: "red",
+    },
+    columnPrevious: {
+      flex: 2,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: "blue",
+    },
+    columnWeight: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: "green",
+    },
+    columnReps: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: "yellow",
+    },
+    columnCheckbox: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: "purple",
+    },
     setsContainer: {
       paddingBottom: 16,
     },
@@ -538,6 +751,7 @@ const createStyles = (colors: any, top: number) =>
       flexDirection: "row",
       marginBottom: 8,
       paddingHorizontal: 12,
+      width: "100%",
     },
     setHeaderText: {
       ...Typography.bodyTertiary,
@@ -558,6 +772,7 @@ const createStyles = (colors: any, top: number) =>
       ...Typography.bodySecondary,
       fontWeight: "600",
       color: colors.textPrimary,
+      textAlign: "center",
     },
     setTextPrevious: {
       color: colors.textSubtle,
@@ -568,6 +783,7 @@ const createStyles = (colors: any, top: number) =>
       alignItems: "center",
       paddingHorizontal: 12,
       paddingVertical: 12,
+      width: "100%",
     },
     setRowCompleted: {
       backgroundColor: colors.bgTertiary,
@@ -685,6 +901,72 @@ const createStyles = (colors: any, top: number) =>
     skipButtonText: {
       color: colors.textPrimary,
       fontSize: 14,
+      fontWeight: "600",
+    },
+    modalOverlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0,0,0,0.75)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 1000,
+    },
+    modalContent: {
+      backgroundColor: colors.bgSecondary,
+      borderRadius: 12,
+      padding: 24,
+      width: "80%",
+      alignItems: "center",
+    },
+    modalTitle: {
+      ...Typography.h2,
+      color: colors.textPrimary,
+      marginBottom: 20,
+      textAlign: "center",
+    },
+    modalOptions: {
+      width: "100%",
+      marginBottom: 20,
+    },
+    modalOption: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    modalOptionSelected: {
+      backgroundColor: colors.bgTertiary,
+      borderColor: colors.accent,
+      borderWidth: 1,
+    },
+    modalOptionText: {
+      ...Typography.body,
+      color: colors.textPrimary,
+    },
+    modalOptionTextSelected: {
+      color: colors.accent,
+      fontWeight: "600",
+    },
+    modalButtons: {
+      width: "100%",
+      flexDirection: "row",
+      justifyContent: "space-around",
+    },
+    modalButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: "center",
+    },
+    modalButtonText: {
+      color: colors.textPrimary,
+      fontSize: 16,
       fontWeight: "600",
     },
   });
