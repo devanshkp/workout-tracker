@@ -64,10 +64,11 @@ export default function ButtonPrimary({
             ? resolvedActiveButtonColor
             : resolvedButtonColor,
           opacity: disabled ? 0.6 : 1,
-          borderColor:
-            !borderActive || pressed
-              ? resolvedActiveButtonColor
-              : colors.border,
+          borderColor: pressed
+            ? resolvedActiveButtonColor
+            : !borderActive
+            ? resolvedButtonColor
+            : colors.border,
           borderWidth: 0.5,
         },
         style,
