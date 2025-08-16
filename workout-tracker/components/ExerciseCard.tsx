@@ -42,7 +42,6 @@ interface ExerciseCardProps {
   onAddSet: () => void;
   onSetPress: (setId: string, type: SetType) => void;
   colors: any;
-  top: number;
 }
 
 export default function ExerciseCard({
@@ -54,9 +53,8 @@ export default function ExerciseCard({
   onAddSet,
   onSetPress,
   colors,
-  top,
 }: ExerciseCardProps) {
-  const styles = createStyles(colors, top);
+  const styles = createStyles(colors);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(exercise.isOpen ? 1 : 0)).current;
@@ -275,7 +273,7 @@ export default function ExerciseCard({
   );
 }
 
-const createStyles = (colors: any, top: number) =>
+const createStyles = (colors: any) =>
   StyleSheet.create({
     exerciseCard: {
       backgroundColor: colors.bgSecondary,
