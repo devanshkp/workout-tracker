@@ -1,0 +1,29 @@
+[
+    {
+        "id": "ex-barbell-bench",
+        "name": "Barbell Bench Press",
+        "muscleGroup": "Chest",
+        "equipment": "Barbell",
+        "isBodyWeight": false,
+        "unit": "kg",
+        "notes": "Lie on bench, feet planted. Lower to mid-chest; press without overextending."
+    },
+    {
+        "id": "ex-squat",
+        "name": "Back Squat",
+        "muscleGroup": "Legs",
+        "equipment": "Barbell",
+        "isBodyWeight": false,
+        "unit": "kg",
+        "notes": "Brace, sit between hips, chest up, drive through midfoot."
+    },
+    {
+        "id": "ex-pullup",
+        "name": "Pull-Up",
+        "muscleGroup": "Back",
+        "equipment": "",
+        "isBodyWeight": true,
+        "unit": "kg",
+        "notes": "Full hang to chin over bar; control the descent."
+    }
+]

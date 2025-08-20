@@ -57,3 +57,5 @@ expo-haptics
 react-native-svg
 react-native-svg-transformer
 react-native-reanimated
+expo-sqlite
+npm i @tanstack/react-query
