@@ -95,7 +95,7 @@ _(Alt cloud DBs: Neon, PlanetScale, MongoDB Atlas.)_
 - **State**: Zustand (UI), React Query (data)
 - **Storage**: SQLite, MMKV, SecureStore, FileSystem
 - **Backend (future)**: Supabase / Firebase / Node.js + Postgres
-- **Payments**: RevenueCat
+- **Payments**: RevenueCat (optional)
 - **Quality**: Sentry, Jest, ESLint/Prettier/TS
 - **Build**: Expo EAS, GitHub Actions
 - **Charts**: victory-native
