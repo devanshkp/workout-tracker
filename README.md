@@ -19,7 +19,7 @@
 
 ## 💾 Local Storage
 
-- **MMKV** — ultra-fast key-value store for UI state (rest timer ticks).
+- **MMKV** — ultra-fast key-value store for UI state (rest timer ticks), user settings, and other small bits of data.
 - **Expo SecureStore** — secrets & tokens (auth, subscription receipts).
 - **Expo FileSystem** — JSON or zipped SQLite export/import (backups, portability).
 - **Expo Notifications** — rest timers, workout reminders.
