@@ -29,7 +29,6 @@ export function initDb() {
       default_weight_unit TEXT DEFAULT 'kg', -- used when creating new exercises
       theme TEXT DEFAULT 'system',
       rest_default_sec INTEGER DEFAULT 90,
-      plate_rounding TEXT DEFAULT 'nearest_2.5kg',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -75,7 +74,7 @@ export function initDb() {
   const now = new Date().toISOString();
   db.runSync(
     `
-    INSERT OR IGNORE INTO settings (id, default_weight_unit, theme, rest_default_sec, plate_rounding, created_at, updated_at)
+    INSERT OR IGNORE INTO settings (id, default_weight_unit, theme, rest_default_secb, created_at, updated_at)
     VALUES ('singleton', 'kg', 'system', 90, 'nearest_2.5kg', ?, ?)
   `,
     now,
