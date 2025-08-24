@@ -1,7 +1,9 @@
+import { StatsPill } from "@/components/StatsPill";
+import { Typography } from "@/constants/Typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import {
   GestureHandlerRootView,
   ScrollView,
@@ -49,6 +51,15 @@ const calculateSetNumbers = (sets: Set[]): Set[] => {
   });
 };
 
+const timeText = "24:52";
+const formatKg = (n: number) => `${n.toLocaleString()} kg`;
+
+type StatsData = {
+  totalExercises: number;
+  totalSets: number;
+  totalVolume: number;
+};
+
 export default function ActiveWorkoutScreen() {
   const { top } = useSafeAreaInsets();
 
@@ -90,33 +101,6 @@ export default function ActiveWorkoutScreen() {
           reps: 6,
           completed: false,
           previous: "30kg x 6",
-        },
-        {
-          id: "4",
-          type: "normal",
-          setNumber: 3,
-          weight: 25,
-          reps: 8,
-          completed: false,
-          previous: "25kg x 8",
-        },
-        {
-          id: "5",
-          type: "dropset",
-          setNumber: 0,
-          weight: 20,
-          reps: 12,
-          completed: false,
-          previous: "20kg x 12",
-        },
-        {
-          id: "6",
-          type: "normal",
-          setNumber: 4,
-          weight: 25,
-          reps: 8,
-          completed: false,
-          previous: "25kg x 8",
         },
       ]),
       notes: "",
@@ -300,9 +284,13 @@ export default function ActiveWorkoutScreen() {
             </Pressable>
           </View>
           <View style={styles.rightContainer}>
-            <Pressable style={[styles.endButton]}>
-              <Text style={styles.endButtonText}>End</Text>
-            </Pressable>
+            <ButtonPrimary
+              text="End"
+              buttonColor={colors.warning}
+              style={styles.endButton}
+              textStyle={styles.endButtonText}
+              borderActive={false}
+            />
           </View>
         </View>
       </View>
@@ -311,27 +299,12 @@ export default function ActiveWorkoutScreen() {
         contentContainerStyle={[GlobalStyles.screenContainer, styles.container]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Workout Summary */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Duration</Text>
-            <Text style={styles.summaryValue}>24:52</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Exercises</Text>
-            <Text style={styles.summaryValue}>{stats.totalExercises}</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Sets</Text>
-            <Text style={styles.summaryValue}>{stats.totalSets}</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Volume</Text>
-            <Text style={styles.summaryValue}>
-              {stats.totalVolume.toLocaleString()}kg
-            </Text>
-          </View>
-        </View>
+        <StatsPill
+          timeText={timeText}
+          totalSets={stats.totalSets}
+          totalVolume={stats.totalVolume}
+          unit="kg"
+        />
 
         {/* Exercise Cards */}
         {exercises.map((exercise) => (
@@ -354,7 +327,6 @@ export default function ActiveWorkoutScreen() {
               setShowSetTypeModal(true);
             }}
             colors={colors}
-            top={top}
           />
         ))}
 
@@ -364,6 +336,7 @@ export default function ActiveWorkoutScreen() {
           iconName="add"
           buttonColor={colors.accent}
           borderActive={false}
+          style={{ borderRadius: 24 }}
         />
       </ScrollView>
 
@@ -462,78 +435,14 @@ const createStyles = (colors: any, top: number) =>
     },
 
     endButton: {
-      backgroundColor: colors.warning,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 8,
-    },
-    endButtonText: {
-      color: colors.textPrimary,
-      fontSize: 16,
-      fontWeight: "500",
-    },
-    summaryCard: {
-      backgroundColor: colors.bgSecondary,
-      borderRadius: 4,
-      padding: 16,
-      marginBottom: 20,
-      flexDirection: "row",
-      justifyContent: "space-between",
-    },
-    summaryItem: {
-      alignItems: "flex-start",
-      flex: 1,
-    },
-    summaryLabel: {
-      color: colors.textSubtle,
-      fontSize: 12,
-      marginBottom: 4,
-      textAlign: "left",
-    },
-    summaryValue: {
-      color: colors.textPrimary,
-      fontSize: 20,
-      fontWeight: "700",
-      textAlign: "left",
+      paddingHorizontal: 16,
+      borderRadius: 40,
+      height: 32,
     },
 
-    timerContainer: {
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      backgroundColor: colors.bgSecondary,
-      flexDirection: "row",
-      alignItems: "center",
-      padding: 16,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-    },
-    timerButton: {
-      padding: 8,
-    },
-    timerButtonText: {
+    endButtonText: {
+      ...Typography.bodySecondary,
       color: colors.textPrimary,
-      fontSize: 14,
-    },
-    timerDisplay: {
-      flex: 1,
-      alignItems: "center",
-    },
-    timerText: {
-      color: colors.textPrimary,
-      fontSize: 24,
-      fontWeight: "600",
-    },
-    skipButton: {
-      backgroundColor: "#00BCD4",
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 8,
-    },
-    skipButtonText: {
-      color: colors.textPrimary,
-      fontSize: 14,
-      fontWeight: "600",
+      fontWeight: "500",
     },
   });

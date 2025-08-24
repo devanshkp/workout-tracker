@@ -277,9 +277,11 @@ const createStyles = (colors: any) =>
   StyleSheet.create({
     exerciseCard: {
       backgroundColor: colors.bgSecondary,
-      borderRadius: 12,
+      borderRadius: 16,
       marginBottom: 16,
       overflow: "hidden",
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     exerciseHeader: {
       flexDirection: "row",
@@ -294,7 +296,7 @@ const createStyles = (colors: any) =>
     },
     exerciseTitleOpen: {
       color: colors.textPrimary,
-      fontWeight: "600",
+      fontWeight: "500",
     },
     exerciseTitleClosed: {
       color: colors.textSubtle,
