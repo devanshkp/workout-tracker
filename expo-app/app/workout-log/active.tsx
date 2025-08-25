@@ -2,6 +2,7 @@ import { StatsPill } from "@/components/StatsPill";
 import { Typography } from "@/constants/Typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
 import React, { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import {
@@ -61,12 +62,13 @@ type StatsData = {
 };
 
 export default function ActiveWorkoutScreen() {
-  const { top } = useSafeAreaInsets();
+  const db = useSQLiteContext();
+  const router = useRouter();
 
+  const { top } = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const styles = React.useMemo(() => createStyles(colors, top), [colors, top]);
   const GlobalStyles = React.useMemo(() => getGlobalStyles(colors), [colors]);
-  const router = useRouter();
 
   const [exercises, setExercises] = useState<Exercise[]>([
     {
@@ -336,7 +338,6 @@ export default function ActiveWorkoutScreen() {
           iconName="add"
           buttonColor={colors.accent}
           borderActive={false}
-          style={{ borderRadius: 24 }}
         />
       </ScrollView>
 
@@ -436,7 +437,6 @@ const createStyles = (colors: any, top: number) =>
 
     endButton: {
       paddingHorizontal: 16,
-      borderRadius: 40,
       height: 32,
     },
 

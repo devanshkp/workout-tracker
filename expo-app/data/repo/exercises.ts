@@ -35,7 +35,7 @@ export async function searchExercises(
     FROM exercise
     WHERE deleted_at IS NULL
       AND (name LIKE ? OR muscle_group LIKE ? OR equipment LIKE ? OR notes LIKE ?)
-    ORDER BY is_system DESC, name ASC
+    ORDER BY is_system DESC, name COLLATE NOCASE ASC
     LIMIT ?
   `,
     like,
