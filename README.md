@@ -1,11 +1,11 @@
-## 🚀 Frontend
+## Frontend
 
 - **React Native (Expo) + TypeScript** — cross-platform UI (iOS/Android), hot reload, OTA updates.
 - **Expo Router** — navigation stacks & tabs.
 - **UI**: `react-native-reanimated` for animations.
 - **Forms/Validation**: React Hook Form + Zod.
 
-## 🗂 State & Data
+## State & Data
 
 - **Zustand (UI/ephemeral state)**
   - For things like timers, modals, selected exercise, draft set edits.
@@ -17,14 +17,14 @@
   - Stores exercises, workouts, sets, user profile, settings.
   - Schema includes `id`, `updated_at`, `deleted_at` for sync.
 
-## 💾 Local Storage
+## Local Storage
 
 - **MMKV** — ultra-fast key-value store for UI state (rest timer ticks), user settings, and other small bits of data.
 - **Expo SecureStore** — secrets & tokens (auth, subscription receipts).
 - **Expo FileSystem** — JSON or zipped SQLite export/import (backups, portability).
 - **Expo Notifications** — rest timers, workout reminders.
 
-## ☁️ Cloud Sync / Backend (future, subscription feature)
+## Cloud Sync / Backend (future, subscription feature)
 
 - **Option A: Supabase** (Postgres + Auth + Storage + RLS)
   - SQL-based, powerful row-level security policies.
@@ -37,31 +37,31 @@
 
 _(Alt cloud DBs: Neon, PlanetScale, MongoDB Atlas.)_
 
-## 🔐 Auth & Paywall
+## Auth & Paywall
 
 - **Auth**: Supabase Auth / Firebase Auth / Custom JWT.
 - **Subscriptions**: RevenueCat (cross-platform IAP).
 - Free users: local data + JSON export.
 - Paid users: cloud sync/restore + advanced analytics.
 
-## 📊 Analytics & Quality
+## Analytics & Quality
 
 - **Sentry** — crash + performance monitoring.
 - **PostHog / Amplitude** — product analytics (events like `workout_completed`).
 - **Jest + React Native Testing Library** — unit & UI testing.
 - **ESLint + Prettier + TypeScript** — code quality & consistency.
 
-## ⚙️ Build & DevOps
+## Build & DevOps
 
 - **Expo EAS** — builds, OTA updates, env secrets.
 - **GitHub Actions** — CI (lint, tests), optional EAS triggers.
 - **expo-assets** — app icons, splash screens.
 
-## 📈 Charts / Data Viz
+## Charts / Data Viz
 
 - **victory-native** or **react-native-svg-charts** — progress graphs, PR tracking.
 
-## 🗄 Suggested Data Model (SQLite tables)
+## Suggested Data Model (SQLite tables)
 
 **Exercises**
 
@@ -79,7 +79,7 @@ _(Alt cloud DBs: Neon, PlanetScale, MongoDB Atlas.)_
 - `user_profile(id, display_name, email?, height_cm?, bodyweight_g?, created_at, updated_at, deleted_at)`
 - `settings(id, units, rest_default_sec, theme, created_at, updated_at)`
 
-## 🔄 Flow
+## Flow
 
 - **Zustand** manages UI state (timers, modals, selections).
 - **React Query** wraps SQLite/HTTP queries and keeps caches fresh.
@@ -89,7 +89,7 @@ _(Alt cloud DBs: Neon, PlanetScale, MongoDB Atlas.)_
 
 ---
 
-## 📝 TL;DR (default stack)
+## TL;DR (default stack)
 
 - **App**: Expo React Native, TypeScript, React Navigation, NativeWind
 - **State**: Zustand (UI), React Query (data)
