@@ -20,7 +20,7 @@ export function useActiveWorkout() {
   const [workoutId, setWorkoutId] = useState<string | undefined>();
   const startedMsRef = useRef<number | undefined>(undefined);
 
-  // Resume an existing active workout if present   
+  // Resume an existing active workout if present
   useEffect(() => {
     (async () => {
       const active = await getActiveWorkout(db);
@@ -33,7 +33,9 @@ export function useActiveWorkout() {
   }, [db]);
 
   async function start() {
+    console.log("[useActiveWorkout.start] called");
     const existing = await getActiveWorkout(db);
+    console.log("[useActiveWorkout.start] existing active:", !!existing);
     if (existing) {
       setWorkoutId(existing.id);
       startedMsRef.current = Date.parse(existing.performed_at);

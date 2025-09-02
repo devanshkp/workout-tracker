@@ -1,4 +1,5 @@
 import { migrateDbIfNeeded } from "@/data/db";
+import { seedExercisesIfEmpty } from "@/data/seed/seedCatalog";
 import { Stack } from "expo-router";
 import { SQLiteProvider } from "expo-sqlite";
 import { Suspense } from "react";
@@ -20,7 +21,8 @@ export default function RootLayout() {
         <SQLiteProvider
           databaseName="workout.db"
           onInit={async () => {
-            await migrateDbIfNeeded();
+            migrateDbIfNeeded();
+            await seedExercisesIfEmpty();
           }}
           useSuspense
         >

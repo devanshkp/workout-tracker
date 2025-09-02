@@ -1,6 +1,7 @@
 // SQLite data-access helpers for workout logging.
 // Convention: an "active" workout has duration_sec IS NULL and deleted_at IS NULL.
 
+import { randomUUID } from "expo-crypto";
 import type { SQLiteDatabase } from "expo-sqlite";
 
 export type WorkoutRow = {
@@ -64,7 +65,7 @@ export async function listSetsForWorkout(
 // --- Mutations ---
 
 export async function startNewWorkout(db: SQLiteDatabase): Promise<WorkoutRow> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const nowIso = new Date().toISOString();
 
   await db.runAsync(
@@ -111,7 +112,7 @@ export async function addSetTx(
       `INSERT INTO workout_set
          (id, workout_id, exercise_id, set_index, set_type, reps_x10, weight_g, created_at, updated_at)
        VALUES (?,?,?,?,?,?,?, ?, ?)`,
-      crypto.randomUUID(),
+      randomUUID(),
       workoutId,
       exerciseId,
       nextIndex,

@@ -105,3 +105,9 @@ export async function updateExerciseUnit(id: string, unit: "kg" | "lb") {
     id
   );
 }
+
+export async function getExerciseById(
+  id: string
+): Promise<ExerciseRow | undefined> {
+  return getExercise(id);
+}
