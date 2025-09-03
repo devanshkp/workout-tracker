@@ -98,6 +98,9 @@ export default function ActiveWorkoutScreen() {
   const [showSetTypeModal, setShowSetTypeModal] = useState(false);
   const [showTimerModal, setShowTimerModal] = useState(false);
   const [showExerciseDrawer, setShowExerciseDrawer] = useState(false);
+  const [exerciseUIState, setExerciseUIState] = useState<
+    Record<string, { isOpen: boolean; isNotesView: boolean }>
+  >({});
   const hasRunRef = useRef(false);
 
   // Convert draft exercises to UI format
@@ -105,6 +108,10 @@ export default function ActiveWorkoutScreen() {
     if (!draft) return [];
 
     return draft.exercises.map((draftEx) => {
+      const uiState = exerciseUIState[draftEx.id] || {
+        isOpen: true,
+        isNotesView: false,
+      };
       const sets: Set[] = draftEx.sets.map((draftSet) => ({
         id: draftSet.id,
         type: draftSet.type,
@@ -117,15 +124,15 @@ export default function ActiveWorkoutScreen() {
       return {
         id: draftEx.id,
         name: draftEx.name || "Unknown Exercise",
-        isOpen: true,
-        isNotesView: false,
+        isOpen: uiState.isOpen,
+        isNotesView: uiState.isNotesView,
         sets: calculateSetNumbers(sets),
         notes: draftEx.notes,
         restTime: draftEx.restTime,
         unit: draftEx.unit,
       };
     });
-  }, [draft]);
+  }, [draft, exerciseUIState]);
 
   // Initialize or resume workout
   useFocusEffect(
@@ -208,8 +215,13 @@ export default function ActiveWorkoutScreen() {
   };
 
   const toggleExercise = (exerciseId: string) => {
-    // This is UI-only state, we'd need to add this to the draft if needed
-    // For now, keeping it simple since exercises are always open
+    setExerciseUIState((prev) => ({
+      ...prev,
+      [exerciseId]: {
+        isOpen: !(prev[exerciseId]?.isOpen ?? true),
+        isNotesView: prev[exerciseId]?.isNotesView ?? false,
+      },
+    }));
   };
 
   const toggleSetCompleted = (exerciseId: string, setId: string) => {
@@ -221,12 +233,55 @@ export default function ActiveWorkoutScreen() {
   };
 
   const handleSwipe = (exerciseId: string, translationX: number) => {
-    // This is UI-only state for notes view
-    // We'd need to add this to the draft if we want to persist it
+    // Toggle notes view based on swipe direction
+    const threshold = 50; // minimum swipe distance
+    if (Math.abs(translationX) > threshold) {
+      setExerciseUIState((prev) => ({
+        ...prev,
+        [exerciseId]: {
+          isOpen: prev[exerciseId]?.isOpen ?? true,
+          isNotesView: !(prev[exerciseId]?.isNotesView ?? false),
+        },
+      }));
+    }
+  };
+
+  const handleSetValueChange = (
+    exerciseId: string,
+    setId: string,
+    field: "weight" | "reps",
+    value: number
+  ) => {
+    updateSet(exerciseId, setId, { [field]: value });
   };
 
   const handleEndWorkout = async () => {
     if (!draft) return;
+
+    if (draft.exercises.length === 0) {
+      Alert.alert(
+        "Cancel Workout",
+        "Are you sure you want to cancel this workout?",
+        [
+          { text: "No", style: "cancel" },
+          {
+            text: "Yes",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await cancel();
+                hasRunRef.current = false; // Reset the flag before navigating
+                router.back();
+              } catch (error) {
+                console.error("Error cancelling workout:", error);
+                Alert.alert("Error", "Failed to cancel workout");
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
 
     Alert.alert("End Workout", "Are you sure you want to end this workout?", [
       { text: "Cancel", style: "cancel" },
@@ -237,7 +292,7 @@ export default function ActiveWorkoutScreen() {
           try {
             const finishedId = await finish();
             console.log("Workout finished:", finishedId);
-            hasRunRef.current = false; // Reset the flag
+            hasRunRef.current = false;
             router.back();
           } catch (error) {
             console.error("Error ending workout:", error);
@@ -246,32 +301,6 @@ export default function ActiveWorkoutScreen() {
         },
       },
     ]);
-  };
-
-  const handleCancelWorkout = async () => {
-    if (!draft) return;
-
-    Alert.alert(
-      "Cancel Workout",
-      "Are you sure you want to cancel this workout? All data will be lost.",
-      [
-        { text: "No", style: "cancel" },
-        {
-          text: "Yes, Cancel",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await cancel();
-              hasRunRef.current = false; // Reset the flag before navigating
-              router.back();
-            } catch (error) {
-              console.error("Error cancelling workout:", error);
-              Alert.alert("Error", "Failed to cancel workout");
-            }
-          },
-        },
-      ]
-    );
   };
 
   if (!draft) {
@@ -360,6 +389,9 @@ export default function ActiveWorkoutScreen() {
               });
               setShowSetTypeModal(true);
             }}
+            onSetValueChange={(setId, field, value) =>
+              handleSetValueChange(exercise.id, setId, field, value)
+            }
             colors={colors}
           />
         ))}

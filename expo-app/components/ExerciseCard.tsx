@@ -1,12 +1,13 @@
 import { Typography } from "@/constants/Typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import ButtonPrimary from "./Button";
@@ -41,6 +42,11 @@ interface ExerciseCardProps {
   onSetTypeChange: (setId: string, newType: SetType) => void;
   onAddSet: () => void;
   onSetPress: (setId: string, type: SetType) => void;
+  onSetValueChange: (
+    setId: string,
+    field: "weight" | "reps",
+    value: number
+  ) => void;
   colors: any;
 }
 
@@ -52,9 +58,14 @@ export default function ExerciseCard({
   onSetTypeChange,
   onAddSet,
   onSetPress,
+  onSetValueChange,
   colors,
 }: ExerciseCardProps) {
   const styles = createStyles(colors);
+  const [editingSet, setEditingSet] = useState<{
+    setId: string;
+    field: "weight" | "reps";
+  } | null>(null);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(exercise.isOpen ? 1 : 0)).current;
@@ -120,6 +131,23 @@ export default function ExerciseCard({
     inputRange: [0, 1],
     outputRange: ["0deg", "180deg"],
   });
+
+  const handleValueChange = (
+    setId: string,
+    field: "weight" | "reps",
+    value: string
+  ) => {
+    const numValue = parseFloat(value) || 0;
+    onSetValueChange(setId, field, numValue);
+  };
+
+  const handleInputFocus = (setId: string, field: "weight" | "reps") => {
+    setEditingSet({ setId, field });
+  };
+
+  const handleInputBlur = () => {
+    setEditingSet(null);
+  };
 
   return (
     <View style={[styles.exerciseCard]}>
@@ -216,11 +244,49 @@ export default function ExerciseCard({
                     </View>
 
                     <View style={styles.columnWeight}>
-                      <Text style={styles.setText}>{set.weight}</Text>
+                      <TextInput
+                        style={[
+                          styles.setText,
+                          styles.textInput,
+                          editingSet?.setId === set.id &&
+                            editingSet?.field === "weight" &&
+                            styles.textInputActive,
+                        ]}
+                        value={set.weight.toString()}
+                        onChangeText={(value) =>
+                          handleValueChange(set.id, "weight", value)
+                        }
+                        onFocus={() => handleInputFocus(set.id, "weight")}
+                        onBlur={handleInputBlur}
+                        keyboardType="numeric"
+                        selectTextOnFocus
+                        textAlign="center"
+                        placeholder="0"
+                        placeholderTextColor={colors.textSubtle}
+                      />
                     </View>
 
                     <View style={styles.columnReps}>
-                      <Text style={styles.setText}>{set.reps}</Text>
+                      <TextInput
+                        style={[
+                          styles.setText,
+                          styles.textInput,
+                          editingSet?.setId === set.id &&
+                            editingSet?.field === "reps" &&
+                            styles.textInputActive,
+                        ]}
+                        value={set.reps.toString()}
+                        onChangeText={(value) =>
+                          handleValueChange(set.id, "reps", value)
+                        }
+                        onFocus={() => handleInputFocus(set.id, "reps")}
+                        onBlur={handleInputBlur}
+                        keyboardType="numeric"
+                        selectTextOnFocus
+                        textAlign="center"
+                        placeholder="0"
+                        placeholderTextColor={colors.textSubtle}
+                      />
                     </View>
 
                     <View style={styles.columnCheckbox}>
@@ -386,5 +452,17 @@ const createStyles = (colors: any) =>
     notesPlaceholder: {
       color: colors.textSubtle,
       fontSize: 14,
+    },
+    textInput: {
+      minHeight: 24,
+      paddingVertical: 2,
+      paddingHorizontal: 4,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: "transparent",
+    },
+    textInputActive: {
+      borderColor: colors.accent,
+      backgroundColor: colors.bgPrimary,
     },
   });
