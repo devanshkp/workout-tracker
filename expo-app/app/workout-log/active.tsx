@@ -1,13 +1,12 @@
 import ExerciseDrawer from "@/components/ExerciseDrawer";
 import { StatsPill } from "@/components/StatsPill";
 import { Typography } from "@/constants/Typography";
-import { gramsToUnit } from "@/data/db";
-import { ExerciseRow, getExerciseById } from "@/data/repo/exercises";
+import { ExerciseRow } from "@/data/repo/exercises";
 import { useActiveWorkout } from "@/hooks/useActiveWorkout";
+import { useWorkoutDraft } from "@/store/useWorkoutDraft";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { randomUUID } from "expo-crypto";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import {
   GestureHandlerRootView,
@@ -20,7 +19,6 @@ import GeneralTimer from "../../components/GeneralTimer";
 import SetTypeModal from "../../components/SetTypeModal";
 import { getGlobalStyles } from "../../constants/GlobalStyles";
 import { useThemeColors } from "../../hooks/useThemeColors";
-const { autostart } = useLocalSearchParams<{ autostart?: string }>();
 
 type SetType = "warmup" | "normal" | "failure" | "dropset";
 
@@ -74,29 +72,23 @@ const formatTime = (seconds: number): string => {
 
 export default function ActiveWorkoutScreen() {
   const {
-    loading,
-    workoutId,
     start,
-    addSet: addSetToDb,
     finish,
     cancel,
-    getSets,
-    refreshTotals,
+    draft,
+    addExercise,
+    updateSet,
+    removeSet,
+    stats,
     durationSec,
   } = useActiveWorkout();
+  const { addSet: addSetToStore } = useWorkoutDraft();
   const router = useRouter();
 
   const { top } = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const styles = React.useMemo(() => createStyles(colors, top), [colors, top]);
   const GlobalStyles = React.useMemo(() => getGlobalStyles(colors), [colors]);
-
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [workoutStats, setWorkoutStats] = useState({
-    totalSets: 0,
-    totalVolume: 0,
-    totalExercises: 0,
-  });
 
   const [selectedSet, setSelectedSet] = useState<{
     exerciseId: string;
@@ -106,15 +98,48 @@ export default function ActiveWorkoutScreen() {
   const [showSetTypeModal, setShowSetTypeModal] = useState(false);
   const [showTimerModal, setShowTimerModal] = useState(false);
   const [showExerciseDrawer, setShowExerciseDrawer] = useState(false);
+  const hasRunRef = useRef(false);
+
+  // Convert draft exercises to UI format
+  const exercises: Exercise[] = React.useMemo(() => {
+    if (!draft) return [];
+
+    return draft.exercises.map((draftEx) => {
+      const sets: Set[] = draftEx.sets.map((draftSet) => ({
+        id: draftSet.id,
+        type: draftSet.type,
+        setNumber: 0, // Will be calculated
+        weight: draftSet.weight,
+        reps: draftSet.reps,
+        completed: draftSet.completed,
+      }));
+
+      return {
+        id: draftEx.id,
+        name: draftEx.name || "Unknown Exercise",
+        isOpen: true,
+        isNotesView: false,
+        sets: calculateSetNumbers(sets),
+        notes: draftEx.notes,
+        restTime: draftEx.restTime,
+        unit: draftEx.unit,
+      };
+    });
+  }, [draft]);
 
   // Initialize or resume workout
-  useEffect(() => {
-    if (!loading && !workoutId && autostart === "1") {
-      // Only start a new workout if we explicitly navigate to this screen
-      // without an existing workout (e.g., from the "Start workout" button)
-      startWorkout();
-    }
-  }, [loading, workoutId]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasRunRef.current && !draft) {
+        startWorkout();
+        hasRunRef.current = true;
+      }
+      return () => {
+        console.log("Cleanup focus effect");
+        hasRunRef.current = false;
+      };
+    }, [])
+  );
 
   const startWorkout = async () => {
     try {
@@ -125,181 +150,52 @@ export default function ActiveWorkoutScreen() {
     }
   };
 
-  const loadWorkoutData = useCallback(async () => {
-    if (!workoutId) return;
-
-    try {
-      const sets = await getSets();
-      const exerciseMap = new Map<string, Exercise>();
-
-      // Group sets by exercise
-      for (const set of sets) {
-        const exerciseId = set.exercise_id;
-
-        if (!exerciseMap.has(exerciseId)) {
-          const exerciseData = await getExerciseById(exerciseId);
-          if (!exerciseData) continue;
-
-          exerciseMap.set(exerciseId, {
-            id: exerciseId,
-            name: exerciseData.name,
-            isOpen: true,
-            isNotesView: false,
-            sets: [],
-            notes: "",
-            restTime: 180,
-            unit: exerciseData.unit,
-            exerciseData,
-          });
-        }
-
-        const exercise = exerciseMap.get(exerciseId)!;
-        const weight = gramsToUnit(exercise.unit, set.weight_g || 0);
-        const reps = (set.reps_x10 || 0) / 10;
-
-        exercise.sets.push({
-          id: set.id,
-          type: (set.set_type as SetType) || "normal",
-          setNumber: set.set_index,
-          weight,
-          reps,
-          completed: true, // Sets in DB are considered completed
-        });
-      }
-
-      // Convert map to array and calculate set numbers
-      const exerciseList = Array.from(exerciseMap.values()).map((ex) => ({
-        ...ex,
-        sets: calculateSetNumbers(ex.sets),
-      }));
-
-      // Only update exercises from database if this is initial load
-      // Preserve UI-only exercises (those without sets in DB)
-      setExercises((prev) => {
-        const dbExerciseIds = new Set(exerciseList.map((ex) => ex.id));
-        const uiOnlyExercises = prev.filter((ex) => !dbExerciseIds.has(ex.id));
-        return [...exerciseList, ...uiOnlyExercises];
-      });
-
-      // Calculate stats
-      const totalSets = sets.length;
-      const totalExercises = exerciseMap.size;
-      const totalVolume = sets.reduce((sum, set) => {
-        const weight = set.weight_g || 0;
-        const reps = (set.reps_x10 || 0) / 10;
-        return sum + (weight / 1000) * reps; // Convert to kg
-      }, 0);
-
-      setWorkoutStats({ totalSets, totalExercises, totalVolume });
-    } catch (error) {
-      console.error("Error loading workout data:", error);
-    }
-  }, [workoutId, getSets]);
-
-  // Load workout data when workoutId is available
-  useEffect(() => {
-    if (workoutId) {
-      loadWorkoutData();
-    }
-  }, [workoutId, loadWorkoutData]);
-
   // Function to add a new exercise
   const handleAddExercise = (exerciseData: ExerciseRow) => {
-    const newExercise: Exercise = {
+    addExercise({
       id: exerciseData.id,
       name: exerciseData.name,
-      isOpen: true,
-      isNotesView: false,
-      sets: [],
-      notes: "",
-      restTime: 180,
       unit: exerciseData.unit,
-      exerciseData,
-    };
-
-    setExercises((prev) => [...prev, newExercise]);
+    });
   };
 
-  // Function to update set type and recalculate numbering
+  // Function to update set type
   const updateSetType = (
     exerciseId: string,
     setId: string,
     newType: SetType
   ) => {
-    setExercises((prev) =>
-      prev.map((ex) => {
-        if (ex.id === exerciseId) {
-          const updatedSets = ex.sets.map((set) =>
-            set.id === setId ? { ...set, type: newType } : set
-          );
-          return { ...ex, sets: calculateSetNumbers(updatedSets) };
-        }
-        return ex;
-      })
-    );
+    const exercise = draft?.exercises.find((ex) => ex.id === exerciseId);
+    const set = exercise?.sets.find((s) => s.id === setId);
+    if (!set) return;
+
+    updateSet(exerciseId, setId, { type: newType });
   };
 
   // Function to add a new set (defaults to normal type)
-  const addSet = async (exerciseId: string) => {
-    const exercise = exercises.find((ex) => ex.id === exerciseId);
-    if (!exercise || !workoutId) return;
-
+  const handleAddSet = async (exerciseId: string) => {
     try {
-      // Add a placeholder set to UI
-      const newSet: Set = {
-        id: randomUUID(), // Use proper UUID
+      addSetToStore(exerciseId, {
         type: "normal",
-        setNumber: 0, // Will be calculated
         weight: 0,
         reps: 0,
         completed: false,
-      };
-
-      setExercises((prev) =>
-        prev.map((ex) => {
-          if (ex.id === exerciseId) {
-            const updatedSets = [...ex.sets, newSet];
-            return { ...ex, sets: calculateSetNumbers(updatedSets) };
-          }
-          return ex;
-        })
-      );
+      });
     } catch (error) {
       console.error("Error adding set:", error);
       Alert.alert("Error", "Failed to add set");
     }
   };
 
-  // Function to save a set to the database
+  // Function to save a set
   const saveSet = async (
     exerciseId: string,
     setId: string,
     weight: number,
     reps: number
   ) => {
-    const exercise = exercises.find((ex) => ex.id === exerciseId);
-    const set = exercise?.sets.find((s) => s.id === setId);
-    if (!exercise || !set || !workoutId) return;
-
     try {
-      await addSetToDb(exerciseId, reps, weight, exercise.unit, set.type);
-
-      // Mark set as completed and refresh data
-      setExercises((prev) =>
-        prev.map((ex) =>
-          ex.id === exerciseId
-            ? {
-                ...ex,
-                sets: ex.sets.map((s) =>
-                  s.id === setId ? { ...s, weight, reps, completed: true } : s
-                ),
-              }
-            : ex
-        )
-      );
-
-      // Refresh workout data to get updated stats
-      await loadWorkoutData();
+      updateSet(exerciseId, setId, { weight, reps, completed: true });
     } catch (error) {
       console.error("Error saving set:", error);
       Alert.alert("Error", "Failed to save set");
@@ -307,55 +203,30 @@ export default function ActiveWorkoutScreen() {
   };
 
   // Function to remove a set
-  const removeSet = (exerciseId: string, setId: string) => {
-    setExercises((prev) =>
-      prev.map((ex) => {
-        if (ex.id === exerciseId) {
-          const updatedSets = ex.sets.filter((set) => set.id !== setId);
-          return { ...ex, sets: calculateSetNumbers(updatedSets) };
-        }
-        return ex;
-      })
-    );
+  const handleRemoveSet = (exerciseId: string, setId: string) => {
+    removeSet(exerciseId, setId);
   };
 
   const toggleExercise = (exerciseId: string) => {
-    setExercises((prev) =>
-      prev.map((ex) =>
-        ex.id === exerciseId
-          ? { ...ex, isOpen: !ex.isOpen, isNotesView: false }
-          : ex
-      )
-    );
+    // This is UI-only state, we'd need to add this to the draft if needed
+    // For now, keeping it simple since exercises are always open
   };
 
   const toggleSetCompleted = (exerciseId: string, setId: string) => {
-    setExercises((prev) =>
-      prev.map((ex) =>
-        ex.id === exerciseId
-          ? {
-              ...ex,
-              sets: ex.sets.map((set) =>
-                set.id === setId ? { ...set, completed: !set.completed } : set
-              ),
-            }
-          : ex
-      )
-    );
+    const exercise = draft?.exercises.find((ex) => ex.id === exerciseId);
+    const set = exercise?.sets.find((s) => s.id === setId);
+    if (!set) return;
+
+    updateSet(exerciseId, setId, { completed: !set.completed });
   };
 
   const handleSwipe = (exerciseId: string, translationX: number) => {
-    if (Math.abs(translationX) > 50) {
-      setExercises((prev) =>
-        prev.map((ex) =>
-          ex.id === exerciseId ? { ...ex, isNotesView: translationX < 0 } : ex
-        )
-      );
-    }
+    // This is UI-only state for notes view
+    // We'd need to add this to the draft if we want to persist it
   };
 
   const handleEndWorkout = async () => {
-    if (!workoutId) return;
+    if (!draft) return;
 
     Alert.alert("End Workout", "Are you sure you want to end this workout?", [
       { text: "Cancel", style: "cancel" },
@@ -366,6 +237,7 @@ export default function ActiveWorkoutScreen() {
           try {
             const finishedId = await finish();
             console.log("Workout finished:", finishedId);
+            hasRunRef.current = false; // Reset the flag
             router.back();
           } catch (error) {
             console.error("Error ending workout:", error);
@@ -377,7 +249,7 @@ export default function ActiveWorkoutScreen() {
   };
 
   const handleCancelWorkout = async () => {
-    if (!workoutId) return;
+    if (!draft) return;
 
     Alert.alert(
       "Cancel Workout",
@@ -390,6 +262,7 @@ export default function ActiveWorkoutScreen() {
           onPress: async () => {
             try {
               await cancel();
+              hasRunRef.current = false; // Reset the flag before navigating
               router.back();
             } catch (error) {
               console.error("Error cancelling workout:", error);
@@ -401,7 +274,7 @@ export default function ActiveWorkoutScreen() {
     );
   };
 
-  if (loading) {
+  if (!draft) {
     return (
       <View
         style={[
@@ -462,8 +335,8 @@ export default function ActiveWorkoutScreen() {
       >
         <StatsPill
           timeText={formatTime(durationSec)}
-          totalSets={workoutStats.totalSets}
-          totalVolume={workoutStats.totalVolume}
+          totalSets={stats.totalSets}
+          totalVolume={stats.totalVolumeKg}
           unit="kg"
         />
 
@@ -478,7 +351,7 @@ export default function ActiveWorkoutScreen() {
             onSetTypeChange={(setId, newType) =>
               updateSetType(exercise.id, setId, newType)
             }
-            onAddSet={() => addSet(exercise.id)}
+            onAddSet={() => handleAddSet(exercise.id)}
             onSetPress={(setId, type) => {
               setSelectedSet({
                 exerciseId: exercise.id,

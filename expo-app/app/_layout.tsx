@@ -18,14 +18,14 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Suspense fallback={<Fallback />}>
-        <SQLiteProvider
-          databaseName="workout.db"
-          onInit={async () => {
-            migrateDbIfNeeded();
-            await seedExercisesIfEmpty();
-          }}
-          useSuspense
-        >
+          <SQLiteProvider
+            databaseName="workout.db"
+            onInit={async () => {
+              migrateDbIfNeeded();
+              await seedExercisesIfEmpty();
+            }}
+            useSuspense
+          >
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen

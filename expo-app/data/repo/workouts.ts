@@ -1,8 +1,13 @@
-// SQLite data-access helpers for workout logging.
-// Convention: an "active" workout has duration_sec IS NULL and deleted_at IS NULL.
-
+import { toGrams } from "@/data/db";
+import type {
+  ActiveWorkoutDraft,
+  DraftExercise,
+  DraftSet,
+} from "@/types/draft";
 import { randomUUID } from "expo-crypto";
 import type { SQLiteDatabase } from "expo-sqlite";
+
+/** ---------- DB row types (mirror the normalized schema) ---------- */
 
 export type WorkoutRow = {
   id: string;
@@ -17,209 +22,209 @@ export type WorkoutRow = {
   deleted_at: string | null;
 };
 
-export type WorkoutSetRow = {
+export type WorkoutExerciseRow = {
   id: string;
   workout_id: string;
   exercise_id: string;
-  set_index: number;
-  set_type: string | null;
-  reps_x10: number | null;
-  weight_g: number | null;
+  notes: string | null;
+  rest_time: number | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
 };
 
-// --- Query helpers ---
+export type WorkoutSetRow = {
+  id: string;
+  workout_exercise_id: string;
+  set_index: number; // 1..N
+  set_type: string | null; // normal | warmup | dropset | failure
+  reps_x10: number | null; // 85 => 8.5 reps
+  weight_g: number | null; // grams (0 for bodyweight)
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
 
-export async function getActiveWorkout(
-  db: SQLiteDatabase
-): Promise<WorkoutRow | null> {
-  return db.getFirstAsync<WorkoutRow>(
-    `SELECT * FROM workout
-      WHERE duration_sec IS NULL AND deleted_at IS NULL
-      ORDER BY performed_at DESC
-      LIMIT 1`
-  );
-}
+/** ---------- Reads over COMPLETED workouts ---------- */
 
 export async function getWorkoutById(
   db: SQLiteDatabase,
   id: string
 ): Promise<WorkoutRow | null> {
-  return db.getFirstAsync<WorkoutRow>(`SELECT * FROM workout WHERE id = ?`, id);
+  return db.getFirstAsync<WorkoutRow>(
+    `SELECT * FROM workout WHERE id = ? AND deleted_at IS NULL`,
+    id
+  );
 }
 
-export async function listSetsForWorkout(
+export async function listWorkouts(
+  db: SQLiteDatabase,
+  limit = 50,
+  offset = 0
+): Promise<WorkoutRow[]> {
+  return db.getAllAsync<WorkoutRow>(
+    `SELECT * FROM workout
+      WHERE deleted_at IS NULL
+      ORDER BY performed_at DESC
+      LIMIT ? OFFSET ?`,
+    limit,
+    offset
+  );
+}
+
+/** Fetch a workout with its exercises and their sets */
+export async function getWorkoutDetail(
   db: SQLiteDatabase,
   workoutId: string
-): Promise<WorkoutSetRow[]> {
-  return db.getAllAsync<WorkoutSetRow>(
-    `SELECT * FROM workout_set
+): Promise<{
+  workout: WorkoutRow | null;
+  exercises: Array<
+    WorkoutExerciseRow & {
+      sets: WorkoutSetRow[];
+    }
+  >;
+}> {
+  const workout = await getWorkoutById(db, workoutId);
+  if (!workout) return { workout: null, exercises: [] };
+
+  const exercises = await db.getAllAsync<WorkoutExerciseRow>(
+    `SELECT * FROM workout_exercise
       WHERE workout_id = ? AND deleted_at IS NULL
-      ORDER BY exercise_id, set_index ASC, created_at ASC`,
+      ORDER BY created_at ASC`,
     workoutId
   );
-}
 
-// --- Mutations ---
-
-export async function startNewWorkout(db: SQLiteDatabase): Promise<WorkoutRow> {
-  const id = randomUUID();
-  const nowIso = new Date().toISOString();
-
-  await db.runAsync(
-    `INSERT INTO workout
-      (id, performed_at, duration_sec, notes, total_sets, total_exercises, total_volume_g, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?, ?, ?)`,
-    id,
-    nowIso,
-    null,
-    null,
-    0,
-    0,
-    0,
-    nowIso,
-    nowIso
+  const withSets = await Promise.all(
+    exercises.map(async (ex) => {
+      const sets = await db.getAllAsync<WorkoutSetRow>(
+        `SELECT * FROM workout_set
+          WHERE workout_exercise_id = ? AND deleted_at IS NULL
+          ORDER BY set_index ASC, created_at ASC`,
+        ex.id
+      );
+      return { ...ex, sets };
+    })
   );
 
-  const row = await getWorkoutById(db, id);
-  if (!row) throw new Error("Failed to create workout");
-  return row;
+  return { workout, exercises: withSets };
 }
 
-export async function addSetTx(
+/** Delete a completed workout (cascades to workout_exercise and workout_set) */
+export async function deleteWorkout(
   db: SQLiteDatabase,
-  workoutId: string,
-  exerciseId: string,
-  reps_x10: number,
-  weight_g: number,
-  setType: string | null = "normal"
-) {
+  workoutId: string
+): Promise<void> {
+  await db.runAsync(`DELETE FROM workout WHERE id = ?`, workoutId);
+}
+
+/** ---------- Draft commit: the ONLY write-path from draft → DB ---------- */
+
+/**
+ * Commit a draft workout into SQLite as a COMPLETED workout.
+ * - Inserts workout, workout_exercise, and workout_set rows in a single transaction.
+ * - Computes totals and duration at commit time.
+ * - Returns the new workout id (DB id, not the draft id).
+ */
+export async function commitDraftToDb(
+  db: SQLiteDatabase,
+  draft: ActiveWorkoutDraft
+): Promise<string> {
+  if (!draft) throw new Error("Invalid draft (null)");
+  if (!draft.startedAt) throw new Error("Draft is missing startedAt");
+  if (!Array.isArray(draft.exercises))
+    throw new Error("Draft has no exercises");
+
+  const workoutId = randomUUID();
   const nowIso = new Date().toISOString();
 
-  await db.withExclusiveTransactionAsync(async (tx) => {
-    const prev = await tx.getFirstAsync<{ max_idx: number }>(
-      `SELECT COALESCE(MAX(set_index), 0) AS max_idx
-         FROM workout_set
-        WHERE workout_id = ? AND exercise_id = ? AND deleted_at IS NULL`,
-      workoutId,
-      exerciseId
-    );
-    const nextIndex = (prev?.max_idx ?? 0) + 1;
+  // Aggregate totals from the draft
+  let totalSets = 0;
+  let totalVolumeG = 0;
+  const totalExercises = draft.exercises.length;
 
+  await db.withExclusiveTransactionAsync(async (tx) => {
+    // 1) Insert workout shell (we'll update totals & duration after inserts)
     await tx.runAsync(
-      `INSERT INTO workout_set
-         (id, workout_id, exercise_id, set_index, set_type, reps_x10, weight_g, created_at, updated_at)
+      `INSERT INTO workout
+        (id, performed_at, duration_sec, notes, total_sets, total_exercises, total_volume_g, created_at, updated_at)
        VALUES (?,?,?,?,?,?,?, ?, ?)`,
-      randomUUID(),
       workoutId,
-      exerciseId,
-      nextIndex,
-      setType,
-      reps_x10,
-      weight_g,
+      draft.startedAt,
+      null,
+      draft.notes ?? null,
+      0,
+      0,
+      0,
       nowIso,
       nowIso
     );
 
-    const volDelta = Math.round((weight_g ?? 0) * (reps_x10 / 10));
+    // 2) Insert each exercise and its sets
+    for (const ex of draft.exercises as DraftExercise[]) {
+      const workoutExerciseId = randomUUID();
+
+      await tx.runAsync(
+        `INSERT INTO workout_exercise
+          (id, workout_id, exercise_id, notes, rest_time, created_at, updated_at)
+         VALUES (?,?,?,?,?, ?, ?)`,
+        workoutExerciseId,
+        workoutId,
+        ex.id,
+        ex.notes ?? null,
+        ex.restTime ?? 180,
+        nowIso,
+        nowIso
+      );
+
+      let setIndex = 0;
+      for (const st of ex.sets as DraftSet[]) {
+        setIndex++;
+
+        const g =
+          st.weight != null ? toGrams(st.unit ?? ex.unit, st.weight) : 0;
+        const reps_x10 = st.reps != null ? Math.round(st.reps * 10) : 0;
+
+        totalSets += 1;
+        totalVolumeG += Math.round(g * (reps_x10 / 10));
+
+        await tx.runAsync(
+          `INSERT INTO workout_set
+            (id, workout_exercise_id, set_index, set_type, reps_x10, weight_g, created_at, updated_at)
+           VALUES (?,?,?,?,?,?, ?, ?)`,
+          randomUUID(),
+          workoutExerciseId,
+          setIndex,
+          st.type ?? "normal",
+          reps_x10,
+          g,
+          nowIso,
+          nowIso
+        );
+      }
+    }
+
+    // 3) Finalize totals + duration
+    const durationSec = Math.max(
+      0,
+      Math.floor((Date.now() - Date.parse(draft.startedAt)) / 1000)
+    );
+
     await tx.runAsync(
-      `UPDATE workout SET total_sets = total_sets + 1,
-                          total_volume_g = total_volume_g + ?,
-                          updated_at = ?
+      `UPDATE workout
+          SET duration_sec = ?,
+              total_sets = ?,
+              total_exercises = ?,
+              total_volume_g = ?,
+              updated_at = ?
         WHERE id = ?`,
-      volDelta,
+      durationSec,
+      totalSets,
+      totalExercises,
+      Math.round(totalVolumeG),
       nowIso,
       workoutId
     );
   });
-}
 
-export async function updateSet(
-  db: SQLiteDatabase,
-  setId: string,
-  fields: Partial<Pick<WorkoutSetRow, "set_type" | "reps_x10" | "weight_g">>
-) {
-  const nowIso = new Date().toISOString();
-  const cols: string[] = [];
-  const args: any[] = [];
-
-  if (fields.set_type !== undefined) {
-    cols.push("set_type = ?");
-    args.push(fields.set_type);
-  }
-  if (fields.reps_x10 !== undefined) {
-    cols.push("reps_x10 = ?");
-    args.push(fields.reps_x10);
-  }
-  if (fields.weight_g !== undefined) {
-    cols.push("weight_g = ?");
-    args.push(fields.weight_g);
-  }
-
-  if (!cols.length) return;
-
-  args.push(nowIso, setId);
-  await db.runAsync(
-    `UPDATE workout_set SET ${cols.join(", ")}, updated_at = ? WHERE id = ?`,
-    ...args
-  );
-}
-
-export async function deleteSet(db: SQLiteDatabase, setId: string) {
-  await db.runAsync(`DELETE FROM workout_set WHERE id = ?`, setId);
-}
-
-export async function recomputeTotals(db: SQLiteDatabase, workoutId: string) {
-  const totals = await db.getFirstAsync<{
-    total_sets: number;
-    total_exercises: number;
-    total_volume_g: number;
-  }>(
-    `WITH agg AS (
-       SELECT COUNT(*) AS total_sets,
-              COUNT(DISTINCT exercise_id) AS total_exercises,
-              COALESCE(SUM(weight_g * (reps_x10/10.0)), 0) AS total_volume_g
-         FROM workout_set
-        WHERE workout_id = ? AND deleted_at IS NULL
-     )
-     SELECT total_sets,
-            total_exercises,
-            CAST(total_volume_g AS INTEGER) AS total_volume_g
-       FROM agg`,
-    workoutId
-  );
-
-  const nowIso = new Date().toISOString();
-  await db.runAsync(
-    `UPDATE workout SET total_sets = ?, total_exercises = ?, total_volume_g = ?, updated_at = ? WHERE id = ?`,
-    totals?.total_sets ?? 0,
-    totals?.total_exercises ?? 0,
-    totals?.total_volume_g ?? 0,
-    nowIso,
-    workoutId
-  );
-}
-
-export async function finalizeWorkout(db: SQLiteDatabase, workoutId: string) {
-  const row = await getWorkoutById(db, workoutId);
-  if (!row) throw new Error("Workout not found");
-
-  await recomputeTotals(db, workoutId);
-
-  const startedMs = Date.parse(row.performed_at);
-  const durationSec = Math.max(0, Math.floor((Date.now() - startedMs) / 1000));
-  const nowIso = new Date().toISOString();
-
-  await db.runAsync(
-    `UPDATE workout SET duration_sec = ?, updated_at = ? WHERE id = ?`,
-    durationSec,
-    nowIso,
-    workoutId
-  );
-}
-
-export async function cancelWorkout(db: SQLiteDatabase, workoutId: string) {
-  await db.runAsync(`DELETE FROM workout WHERE id = ?`, workoutId);
+  return workoutId;
 }

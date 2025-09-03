@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "workouttracker",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
@@ -16,7 +15,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.workouttracker"
     },
     "web": {
       "bundler": "metro",

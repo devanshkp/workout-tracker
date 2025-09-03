@@ -22,7 +22,19 @@ export function migrateDbIfNeeded() {
 
   if (user_version < 1) {
     db.execSync(`
-      -- v1: baseline schema
+    PRAGMA foreign_keys = ON;
+    PRAGMA journal_mode = WAL;
+  `);
+
+    const { user_version } =
+      // @ts-ignore
+      db.getFirstSync<{ user_version: number }>("PRAGMA user_version") ?? {
+        user_version: 0,
+      };
+
+    if (user_version < 1) {
+      db.execSync(`
+      -- v1: clean normalized schema
 
       CREATE TABLE IF NOT EXISTS exercise (
         id TEXT PRIMARY KEY,
@@ -32,7 +44,7 @@ export function migrateDbIfNeeded() {
         is_bodyweight INTEGER NOT NULL DEFAULT 0,
         unit TEXT NOT NULL DEFAULT 'kg' CHECK (unit IN ('kg','lb')),
         notes TEXT,
-        is_system INTEGER NOT NULL DEFAULT 0,     -- 1 = seeded/bundled, 0 = user-created
+        is_system INTEGER NOT NULL DEFAULT 0, -- 1 = seeded/bundled, 0 = user-created
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         deleted_at TEXT
@@ -51,14 +63,12 @@ export function migrateDbIfNeeded() {
         deleted_at TEXT
       );
 
-      CREATE TABLE IF NOT EXISTS workout_set (
+      CREATE TABLE IF NOT EXISTS workout_exercise (
         id TEXT PRIMARY KEY,
         workout_id TEXT NOT NULL,
         exercise_id TEXT NOT NULL,
-        set_index INTEGER NOT NULL,              -- 1..N within that exercise in this workout
-        set_type TEXT,                           -- normal | warmup | drop | failure ...
-        reps_x10 INTEGER,                        -- 85 => 8.5 reps
-        weight_g INTEGER,                        -- stored in grams (0 for bodyweight)
+        notes TEXT,
+        rest_time INTEGER,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         deleted_at TEXT,
@@ -66,17 +76,36 @@ export function migrateDbIfNeeded() {
         FOREIGN KEY(exercise_id) REFERENCES exercise(id)
       );
 
+      CREATE TABLE IF NOT EXISTS workout_set (
+        id TEXT PRIMARY KEY,
+        workout_exercise_id TEXT NOT NULL,
+        set_index INTEGER NOT NULL,              -- 1..N within that exercise in this workout
+        set_type TEXT,                           -- normal | warmup | dropset | failure
+        reps_x10 INTEGER,                        -- 85 => 8.5 reps
+        weight_g INTEGER,                        -- stored in grams (0 for bodyweight)
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT,
+        FOREIGN KEY(workout_exercise_id) REFERENCES workout_exercise(id) ON DELETE CASCADE
+      );
+
       -- indexes
       CREATE INDEX IF NOT EXISTS idx_exercise_active_name
         ON exercise (is_system DESC, name COLLATE NOCASE)
         WHERE deleted_at IS NULL;
+
       CREATE INDEX IF NOT EXISTS idx_exercise_deleted_at
         ON exercise (deleted_at);
-      CREATE INDEX IF NOT EXISTS idx_ws_exercise_time
-        ON workout_set (exercise_id, created_at);
-      CREATE INDEX IF NOT EXISTS idx_ws_workout
-        ON workout_set (workout_id);
+
+      CREATE INDEX IF NOT EXISTS idx_workout_exercise_workout_id
+        ON workout_exercise (workout_id);
+
+      CREATE INDEX IF NOT EXISTS idx_ws_we_time
+        ON workout_set (workout_exercise_id, created_at);
+
+      PRAGMA user_version = 1;
     `);
+    }
 
     db.execSync(`PRAGMA user_version = 1`);
   }
